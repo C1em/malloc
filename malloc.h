@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:27:04 by coremart          #+#    #+#             */
-/*   Updated: 2020/08/16 04:21:50 by coremart         ###   ########.fr       */
+/*   Updated: 2020/08/29 14:05:43 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,7 +17,7 @@
 
 # define HEADER_SIZE		sizeof(struct s_alloc_chunk)
 
-# define TINY_TRESHOLD		64
+# define TINY_TRESHOLD		178
 # define SMALL_TRESHOLD		512
 
 # define NEXT_8MULT(x)		((7 + x) & ~7)
@@ -43,6 +43,13 @@ struct s_binlist
 	struct s_binlist*	prev;
 };
 
+struct s_fastbinlist
+{
+	size_t					prevsize;
+	size_t					size_n_previnuse;
+	struct s_fastbinlist*	next;
+};
+
 struct s_alloc_chunk
 {
 	size_t			prevsize;
@@ -55,12 +62,15 @@ struct s_arena
 	struct s_arena*		prev;
 };
 
+//optimize size ???
 struct s_malloc_struct
 {
 	struct s_arena			*tinyarenalist;
 	struct s_arena			*smallarenalist;
 	struct s_binlist*		bin[128]; // ??? change array size one for each size of tiny arena + one for each n of small arena
-	struct s_fastbinlist*	fastbin[8]
+
+	//24 40 56 72 88 104 120 146 162 178
+	struct s_fastbinlist*	fastbin[10]
 };
 
 struct s_malloc_struct malloc_struct;

@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:26:54 by coremart          #+#    #+#             */
-/*   Updated: 2020/08/16 04:54:40 by coremart         ###   ########.fr       */
+/*   Updated: 2020/08/29 13:22:50 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,10 +44,11 @@ bool		new_arena(int type)
 	return (true);
 }
 
-void		*large_malloc(const size_t size)
+void		*large_malloc(size_t size)
 {
 	void		*alloc;
 
+	size += sizeof(size_t);
 	alloc =  mmap(NULL, NEXT_PAGEALIGN(size), PROT_READ | PROT_WRITE,
 				MAP_ANON | MAP_PRIVATE, -1, 0);
 	if (alloc == (void*)-1)
@@ -74,10 +75,10 @@ void		*tiny_malloc(const size_t size)
 }
 void		*malloc(size_t size)
 {
-	// THINK ABOUT ROUNDING UP TO THE NEXT MULT8 AND NOT MULT16 COZ PREVSIZE CAN HOLD DATA
 	if (size > ULONG_MAX - HEADER_SIZE - sizeof(size_t) || size == 0)
 		return (NULL);
-	size = NEXT_16MULT(size + HEADER_SIZE);
+	// round up to the next mult8 and not mult16 coz presize can hold datas
+	size = NEXT_16MULT(size + sizeof(size_t));
 	if (size > SMALL_TRESHOLD)
 		return (large_malloc(size));
 	if (size > TINY_TRESHOLD)
