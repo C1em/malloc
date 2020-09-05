@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:26:54 by coremart          #+#    #+#             */
-/*   Updated: 2020/08/29 13:22:50 by coremart         ###   ########.fr       */
+/*   Updated: 2020/09/05 21:48:07 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,8 @@
 #include "malloc.h"
 #include <stdbool.h>
 #include <limits.h>
+
+__thread struct s_malloc_struct malloc_struct;
 
 bool		new_arena(int type)
 {
@@ -48,12 +50,12 @@ void		*large_malloc(size_t size)
 {
 	void		*alloc;
 
-	size += sizeof(size_t);
+	size += sizeof(size_t) << 1;
 	alloc =  mmap(NULL, NEXT_PAGEALIGN(size), PROT_READ | PROT_WRITE,
 				MAP_ANON | MAP_PRIVATE, -1, 0);
 	if (alloc == (void*)-1)
 		return (NULL);
-	((struct s_alloc_chunk*)alloc)->size_n_previnuse = NEXT_PAGEALIGN(size);
+	((struct s_alloc_chunk*)alloc)->size_n_bits = NEXT_PAGEALIGN(size);
 	return ((void*)((char*)alloc + HEADER_SIZE));
 }
 
@@ -73,15 +75,18 @@ void		*tiny_malloc(const size_t size)
 	//check in unsorted bin and if not found move all unsorted elem to their respectives bin
 	//check linked list else get from top chunk
 }
+
+// WHEN ALLOCATE FROM THE TOP CHUNK PUT A HEADER AT THE END ????
 void		*malloc(size_t size)
 {
-	if (size > ULONG_MAX - HEADER_SIZE - sizeof(size_t) || size == 0)
+	if (size >= ULONG_MAX - getpagesize() - HEADER_SIZE || size == 0)
 		return (NULL);
-	// round up to the next mult8 and not mult16 coz presize can hold datas
-	size = NEXT_16MULT(size + sizeof(size_t));
+	// round up to the next mult8 and not mult16 coz prevsize can hold datas
+	size = NEXT_16MULT(size);
 	if (size > SMALL_TRESHOLD)
 		return (large_malloc(size));
 	if (size > TINY_TRESHOLD)
 		return (small_malloc(size));
 	return (tiny_malloc(size));
 }
+
