@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:27:04 by coremart          #+#    #+#             */
-/*   Updated: 2020/09/05 21:45:07 by coremart         ###   ########.fr       */
+/*   Updated: 2020/09/07 22:06:45 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,8 +34,7 @@
 # define IS_LAST			0x2
 # define CHUNK_SIZE			~0x7UL
 
-# define TINY_ARENA			0x0
-# define SMALL_ARENA		0x1
+# define NBINS				128
 
 struct s_binlist
 {
@@ -61,7 +60,6 @@ struct s_alloc_chunk
 
 struct s_arena
 {
-	void				*top_chunk;
 	struct s_arena*		prev;
 };
 
@@ -70,8 +68,10 @@ struct s_malloc_struct
 {
 	unsigned int			mmap_threshold; // ??? the more you free, the more it grows
 	struct s_arena			*tinyarenalist;
+	void					*t_topchunk;
 	struct s_arena			*smallarenalist;
-	struct s_binlist*		bin[128]; // ??? change array size one for each size of tiny arena + one for each n of small arena
+	void					*s_topchunk;
+	struct s_binlist*		bin[NBINS * 2]; // ??? change array size one for each size of tiny arena + one for each n of small arena
 
 	//24 40 56 72 88 104 120 136 152 168
 	struct s_fastbinlist*	fastbin[10];

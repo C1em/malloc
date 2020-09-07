@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:27:57 by coremart          #+#    #+#             */
-/*   Updated: 2020/09/05 21:47:59 by coremart         ###   ########.fr       */
+/*   Updated: 2020/09/07 18:33:14 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -188,8 +188,8 @@ void	test_coalesece(void)
 
 int		main(void)
 {
-	test_coalesece();
-	// malloc(2);
+	// test_coalesece();
+	(void)malloc(2);
 	// printf("tiny arena : %d\nsmall arena : %d\n", TINY_ARENA, SMALL_ARENA);
 	// char *alloc = malloc(4096);
 	// free(alloc);
