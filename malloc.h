@@ -19,8 +19,8 @@
 
 # define TINY_TRESHOLD		512
 # define SMALL_TRESHOLD		1024
-// # define FASTBIN_MAX		272 ???
-# define FASTBIN_MAX		16
+# define FASTBIN_MAX		272
+// # define FASTBIN_MAX		16
 
 # define PAGE_SZ			getpagesize()
 # define NEXT_8MULT(x)		((7 + x) & ~7)

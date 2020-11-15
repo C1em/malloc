@@ -78,13 +78,16 @@ struct s_alloc_chunk	*do_fastbin(const size_t size)
 		ret = malloc_struct.fastbin[i];
 		while (ret != NULL)
 		{
-			ret = (struct s_fastbinlist*)coalesce_tinychunk((struct s_binlist*)ret);
+			printf("addr: %p, size: %zu, i = %u\n", ret, ret->size_n_bits, i);
 			malloc_struct.fastbin[i] = ret->next;
+			ret = (struct s_fastbinlist*)coalesce_tinychunk((struct s_binlist*)ret);
 			if ((ret->size_n_bits & CHUNK_SIZE) == size)
 			{
 				((struct s_alloc_chunk*)((char*)ret + (ret->size_n_bits & CHUNK_SIZE)))->size_n_bits |= PREVINUSE;
+				printf("return do_fastbin\n");
 				return ((struct s_alloc_chunk*)ret);
 			}
+			// check if is the new to chunk ????
 			add_tinybin((struct s_binlist*)ret);
 			ret = malloc_struct.fastbin[i];
 		}

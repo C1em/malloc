@@ -200,22 +200,36 @@ int		main(void)
 {
 	char	*arr[512];
 	int		intarr[512];
+	int		alloc_index = 0;
+	int		free_index = 0;
+
 	// test_coalesece();
-	for (int i = 0; i < 256; i++)
-	{
-		arr[i] = (char*)malloc((intarr[i] = arc4random() % 504));
-		for (int j = 0; j < intarr[i]; j++)
-			arr[i][j] = -1;
+
+	for (int i = 0; i < 512; i++) {
+
+		if (arc4random() % 2) {
+
+			arr[alloc_index] = (char*)malloc((intarr[alloc_index] = arc4random() % 504));
+			for (int j = 0; j < intarr[alloc_index]; j++)
+				arr[alloc_index][j] = -1;
+			alloc_index++;
+		}
+		else if (free_index < alloc_index){
+			free(arr[free_index]);
+			free_index++;
+		}
 	}
-	for (int i = 0; i < 256; i++)
-	{
-		free(arr[i]);
-	}
-	// void *ptr = malloc(1);
-	// void *ptr2 = malloc(1);
-	// void *ptr3 = malloc(1);
-	// free(ptr2);
-	// free(ptr);
+
+	// for (int i = 0; i < 256; i++)
+	// {
+	// 	arr[i] = (char*)malloc((intarr[i] = arc4random() % 504));
+	// 	for (int j = 0; j < intarr[i]; j++)
+	// 		arr[i][j] = -1;
+	// }
+	// for (int i = 0; i < 256; i++)
+	// {
+	// 	free(arr[i]);
+	// }
 
 	return (0);
 
