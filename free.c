@@ -146,7 +146,7 @@ struct s_binlist	*coalesce_tinychunk(struct s_binlist *chunk_ptr)
 void				do_small(struct s_binlist *chunk_ptr)
 {
 	chunk_ptr = coalesce_smallchunk(chunk_ptr);
-	if (((struct s_alloc_chunk*)((char*)chunk_ptr + (chunk_ptr->size_n_bits & CHUNK_SIZE)))->size_n_bits & ISTOPCHUNK)
+	if ((char*)chunk_ptr + (chunk_ptr->size_n_bits & CHUNK_SIZE)  + sizeof(size_t)== malloc_struct.topchunk_smallarena)
 	{
 		// print("new top chunk");
 		while ((chunk_ptr->size_n_bits & PREVINUSE) == false)
@@ -155,7 +155,7 @@ void				do_small(struct s_binlist *chunk_ptr)
 			unlink_chunk(chunk_ptr);
 		}
 		chunk_ptr->size_n_bits |= ISTOPCHUNK;
-		malloc_struct.topchunk_smallarena = chunk_ptr + sizeof(size_t);
+		malloc_struct.topchunk_smallarena = (char*)chunk_ptr + sizeof(size_t);
 
 	}
 	else
@@ -165,19 +165,18 @@ void				do_small(struct s_binlist *chunk_ptr)
 void				do_tiny(struct s_binlist *chunk_ptr)
 {
 	chunk_ptr = coalesce_tinychunk(chunk_ptr);
-	// Change coz when istopchunk but not of the current arena
-	if (((struct s_alloc_chunk*)((char*)chunk_ptr + (chunk_ptr->size_n_bits & CHUNK_SIZE)))->size_n_bits & ISTOPCHUNK)
+	if ((char*)chunk_ptr + (chunk_ptr->size_n_bits & CHUNK_SIZE)  + sizeof(size_t) == malloc_struct.topchunk_tinyarena)
 	{
-		printf("new top chunk\n");
-		while ((chunk_ptr->size_n_bits & PREVINUSE) == false)
+		// never enter ??? at the last free the progemme should enter in this
+		while (!(chunk_ptr->size_n_bits & PREVINUSE))
 		{
 			chunk_ptr = (struct s_binlist*)((char*)chunk_ptr - chunk_ptr->prevsize);
 			unlink_chunk(chunk_ptr);
 		}
 		// printf("change top chunk\n");
 		chunk_ptr->size_n_bits |= ISTOPCHUNK;
-		malloc_struct.topchunk_tinyarena = chunk_ptr + sizeof(size_t);
-
+		malloc_struct.topchunk_tinyarena = (char*)chunk_ptr + sizeof(size_t);
+		printf("new top chunk : %p, arena: %p\n", malloc_struct.topchunk_tinyarena, malloc_struct.tinyarenalist);
 	}
 	else if (printf("add to unsorted\n"))
 		add_unsorted(chunk_ptr);
@@ -193,9 +192,8 @@ void				free(void *ptr)
 	// check if ptr is align on 16
 	// check if already free (previnuse of next)
 	chunk_ptr = (struct s_alloc_chunk*)((char*)ptr - HEADER_SIZE);
-	if ((chunk_ptr->size_n_bits & CHUNK_SIZE) <= FASTBIN_MAX)
+	if ((chunk_ptr->size_n_bits & CHUNK_SIZE) <= FASTBIN_MAX && printf("add fastbin of size : %zu\n", (chunk_ptr->size_n_bits & CHUNK_SIZE)))
 		add_fastbin(chunk_ptr);
-	// check tiny_treshold
 	else if (chunk_ptr->size_n_bits >= getpagesize())
 		munmap((void*)chunk_ptr, chunk_ptr->size_n_bits);
 	else if ((chunk_ptr->size_n_bits & CHUNK_SIZE) <= TINY_TRESHOLD)
@@ -206,4 +204,5 @@ void				free(void *ptr)
 	// check that next->prev = chunkptr and prev->next = chunkptr before collapsing
 	//change the previnuse and prevsize of next chunk
 	//collapse freed bin
+	// change mmap_threshold
 }

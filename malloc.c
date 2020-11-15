@@ -108,7 +108,7 @@ struct s_alloc_chunk	*get_from_tinytopchunk(size_t size)
 	}
 	topchunk->size_n_bits = size + (topchunk->size_n_bits & 0x7 & ~ISTOPCHUNK);
 	((struct s_alloc_chunk*)((char*)topchunk + size))->size_n_bits = PREVINUSE | ISTOPCHUNK;
-	((struct s_alloc_chunk*)((char*)topchunk + (topchunk->size_n_bits & HEADER_SIZE)))->size_n_bits = PREVINUSE | ISTOPCHUNK;
+	((struct s_alloc_chunk*)((char*)topchunk + (topchunk->size_n_bits & CHUNK_SIZE)))->size_n_bits = PREVINUSE | ISTOPCHUNK;
 	malloc_struct.topchunk_tinyarena = (char*)topchunk + size + sizeof(size_t);
 	printf("current top chunk:%ld\n", (char*)malloc_struct.topchunk_tinyarena - (char*)malloc_struct.tinyarenalist);
 	return (topchunk);

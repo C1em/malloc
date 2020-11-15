@@ -203,7 +203,7 @@ int		main(void)
 	// test_coalesece();
 	for (int i = 0; i < 256; i++)
 	{
-		arr[i] = (char*)malloc((intarr[i] = rand() % 504));
+		arr[i] = (char*)malloc((intarr[i] = arc4random() % 504));
 		for (int j = 0; j < intarr[i]; j++)
 			arr[i][j] = -1;
 	}
