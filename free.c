@@ -26,9 +26,8 @@ void				add_fastbin(struct s_alloc_chunk* chunk_ptr)
 	struct s_fastbinlist	*tmp;
 
 	index = ((chunk_ptr->size_n_bits & CHUNK_SIZE) >> 4) - 2; // (size - 32) / 16
-	tmp = malloc_struct.fastbin[index];
+	((struct s_fastbinlist*)chunk_ptr)->next = malloc_struct.fastbin[index];
 	malloc_struct.fastbin[index] = (struct s_fastbinlist*)chunk_ptr;
-	malloc_struct.fastbin[index]->next = tmp;
 }
 
 void			add_tinybin(struct s_binlist* chunk_ptr)
@@ -79,11 +78,11 @@ struct s_binlist	*coalesce_smallchunk(struct s_binlist *chunk_ptr)
 	next_chunk = (struct s_binlist*)((char*)chunk_ptr + (chunk_ptr->size_n_bits & CHUNK_SIZE));
 	new_sz = chunk_ptr->size_n_bits;
 	// chunk_ptr is not the last chunk and next_chunk is not in use
-	if ((char*)chunk_ptr + (chunk_ptr->size_n_bits & CHUNK_SIZE) + sizeof(size_t) != malloc_struct.s_topchunk
+	if (!(next_chunk->size_n_bits & ISTOPCHUNK)
 	&& !(((struct s_binlist *)((char*)next_chunk + (next_chunk->size_n_bits & CHUNK_SIZE)))->size_n_bits & PREVINUSE))
 	{
-		tmp = next_chunk->size_n_bits & (CHUNK_SIZE);
-		if (new_sz + tmp <= SMALL_TRESHOLD + 7)
+		tmp = next_chunk->size_n_bits & CHUNK_SIZE;
+		if (new_sz + tmp <= SMALL_TRESHOLD + 0x7)
 		{
 			new_sz += tmp;
 			unlink_chunk(next_chunk);
@@ -93,7 +92,7 @@ struct s_binlist	*coalesce_smallchunk(struct s_binlist *chunk_ptr)
 	{
 		prev_chunk = (struct s_binlist*)((char*)chunk_ptr - chunk_ptr->prevsize);
 		tmp = prev_chunk->size_n_bits & (CHUNK_SIZE | PREVINUSE);
-		if (new_sz + tmp <= SMALL_TRESHOLD + 7)
+		if (new_sz + tmp <= SMALL_TRESHOLD + 0x7)
 		{
 			new_sz += tmp;
 			chunk_ptr = prev_chunk;
@@ -103,12 +102,6 @@ struct s_binlist	*coalesce_smallchunk(struct s_binlist *chunk_ptr)
 	chunk_ptr->size_n_bits = new_sz;
 	((struct s_binlist*)((char*)chunk_ptr + (chunk_ptr->size_n_bits & CHUNK_SIZE)))->prevsize = new_sz & CHUNK_SIZE;
 	return (chunk_ptr);
-}
-bool				islast(struct s_binlist* chunk_ptr)
-{
-	(char*)chunk_ptr + (chunk_ptr->size_n_bits & CHUNK_SIZE) + sizeof(size_t) != malloc_struct.t_topchunk;
-	//check if is not topchunk
-	//if is not at the end at page return false else find arena and check if is last of arena
 }
 
 struct s_binlist	*coalesce_tinychunk(struct s_binlist *chunk_ptr)
@@ -121,14 +114,15 @@ struct s_binlist	*coalesce_tinychunk(struct s_binlist *chunk_ptr)
 	next_chunk = (struct s_binlist*)((char*)chunk_ptr + (chunk_ptr->size_n_bits & CHUNK_SIZE));
 	new_sz = chunk_ptr->size_n_bits;
 	// chunk_ptr is not the last chunk and next_chunk is not in use
-	// if chunk_ptr is the last from prev arena ???
-	if (!islast(chunk_ptr)
+	if (!(next_chunk->size_n_bits & ISTOPCHUNK)
 	&& !(((struct s_binlist *)((char*)next_chunk + (next_chunk->size_n_bits & CHUNK_SIZE)))->size_n_bits & PREVINUSE))
 	{
-		tmp = next_chunk->size_n_bits & (CHUNK_SIZE);
-		if (new_sz + tmp <= TINY_TRESHOLD + 7)
+		tmp = next_chunk->size_n_bits & CHUNK_SIZE;
+		if (new_sz + tmp <= TINY_TRESHOLD + 0x7)
 		{
 			new_sz += tmp;
+			printf("colesce next\n");
+			printf("addr chunk: %p, addr arena: %p, addr arena: %p\n", next_chunk, malloc_struct.tinyarenalist, malloc_struct.tinyarenalist->prev);
 			unlink_chunk(next_chunk);
 		}
 	}
@@ -136,10 +130,11 @@ struct s_binlist	*coalesce_tinychunk(struct s_binlist *chunk_ptr)
 	{
 		prev_chunk = (struct s_binlist*)((char*)chunk_ptr - chunk_ptr->prevsize);
 		tmp = prev_chunk->size_n_bits & (CHUNK_SIZE | PREVINUSE);
-		if (new_sz + tmp <= TINY_TRESHOLD + 7)
+		if (new_sz + tmp <= TINY_TRESHOLD + 0x7)
 		{
 			new_sz += tmp;
 			chunk_ptr = prev_chunk;
+			printf("colesce prev\n");
 			unlink_chunk(chunk_ptr);
 		}
 	}
@@ -151,8 +146,18 @@ struct s_binlist	*coalesce_tinychunk(struct s_binlist *chunk_ptr)
 void				do_small(struct s_binlist *chunk_ptr)
 {
 	chunk_ptr = coalesce_smallchunk(chunk_ptr);
-	if ((char*)chunk_ptr + (chunk_ptr->size_n_bits & CHUNK_SIZE) + sizeof(size_t) == malloc_struct.s_topchunk)
-		malloc_struct.s_topchunk = chunk_ptr + sizeof(size_t);
+	if (((struct s_alloc_chunk*)((char*)chunk_ptr + (chunk_ptr->size_n_bits & CHUNK_SIZE)))->size_n_bits & ISTOPCHUNK)
+	{
+		// print("new top chunk");
+		while ((chunk_ptr->size_n_bits & PREVINUSE) == false)
+		{
+			chunk_ptr = (struct s_binlist*)((char*)chunk_ptr - chunk_ptr->prevsize);
+			unlink_chunk(chunk_ptr);
+		}
+		chunk_ptr->size_n_bits |= ISTOPCHUNK;
+		malloc_struct.topchunk_smallarena = chunk_ptr + sizeof(size_t);
+
+	}
 	else
 		add_unsorted(chunk_ptr);
 }
@@ -160,21 +165,33 @@ void				do_small(struct s_binlist *chunk_ptr)
 void				do_tiny(struct s_binlist *chunk_ptr)
 {
 	chunk_ptr = coalesce_tinychunk(chunk_ptr);
-	if ((char*)chunk_ptr + (chunk_ptr->size_n_bits & CHUNK_SIZE)  + sizeof(size_t)== malloc_struct.t_topchunk)
-		malloc_struct.t_topchunk = chunk_ptr + sizeof(size_t);
-	else
-		add_tinybin(chunk_ptr);
+	// Change coz when istopchunk but not of the current arena
+	if (((struct s_alloc_chunk*)((char*)chunk_ptr + (chunk_ptr->size_n_bits & CHUNK_SIZE)))->size_n_bits & ISTOPCHUNK)
+	{
+		printf("new top chunk\n");
+		while ((chunk_ptr->size_n_bits & PREVINUSE) == false)
+		{
+			chunk_ptr = (struct s_binlist*)((char*)chunk_ptr - chunk_ptr->prevsize);
+			unlink_chunk(chunk_ptr);
+		}
+		// printf("change top chunk\n");
+		chunk_ptr->size_n_bits |= ISTOPCHUNK;
+		malloc_struct.topchunk_tinyarena = chunk_ptr + sizeof(size_t);
+
+	}
+	else if (printf("add to unsorted\n"))
+		add_unsorted(chunk_ptr);
 }
 
 void				free(void *ptr)
 {
 	struct s_alloc_chunk *chunk_ptr;
 
-	if (ptr == NULL)
+	if (ptr == NULL || malloc_struct.bin[0] == NULL)
 		return;
 	// check if size is a mult of 16???
 	// check if ptr is align on 16
-	// check if already free
+	// check if already free (previnuse of next)
 	chunk_ptr = (struct s_alloc_chunk*)((char*)ptr - HEADER_SIZE);
 	if ((chunk_ptr->size_n_bits & CHUNK_SIZE) <= FASTBIN_MAX)
 		add_fastbin(chunk_ptr);

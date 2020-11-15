@@ -19,7 +19,8 @@
 
 # define TINY_TRESHOLD		512
 # define SMALL_TRESHOLD		1024
-# define FASTBIN_MAX		272
+# define FASTBIN_MAX		16
+// # define FASTBIN_MAX		272
 
 # define PAGE_SZ			getpagesize()
 # define NEXT_8MULT(x)		((7 + x) & ~7)
@@ -32,6 +33,7 @@
 # define SMALL_ARENA_SZ		NEXT_PAGEALIGN((SMALL_TRESHOLD + HEADER_SIZE) * 100)
 
 # define PREVINUSE			0x1
+# define ISTOPCHUNK			0x2
 # define CHUNK_SIZE			~0x7UL
 
 # define NBINS				128
@@ -68,9 +70,9 @@ struct s_malloc_struct
 {
 	unsigned int			mmap_threshold; // ??? the more you free, the more it grows
 	struct s_arena			*tinyarenalist;
-	void					*t_topchunk;
+	void					*topchunk_tinyarena;
 	struct s_arena			*smallarenalist;
-	void					*s_topchunk;
+	void					*topchunk_smallarena;
 
 	//[0, 1]: smallunsorted
 	struct s_binlist*		bin[NBINS * 2]; // ??? change array size one for each size of tiny arena + one for each n of small arena

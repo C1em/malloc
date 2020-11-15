@@ -201,16 +201,25 @@ int		main(void)
 	char	*arr[512];
 	int		intarr[512];
 	// test_coalesece();
-	for (int i = 0; i < 512; i++)
+	for (int i = 0; i < 256; i++)
 	{
 		arr[i] = (char*)malloc((intarr[i] = rand() % 504));
 		for (int j = 0; j < intarr[i]; j++)
 			arr[i][j] = -1;
 	}
-	for (int i = 0; i < 512; i++)
+	for (int i = 0; i < 256; i++)
 	{
 		free(arr[i]);
 	}
+	// void *ptr = malloc(1);
+	// void *ptr2 = malloc(1);
+	// void *ptr3 = malloc(1);
+	// free(ptr2);
+	// free(ptr);
+
 	return (0);
+
+
 }
+
 // try ulong_max
