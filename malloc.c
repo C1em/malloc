@@ -41,8 +41,8 @@ void		*small_malloc(const size_t size)
 	//if not enough in top chunk create new arena and add last top chunk to bins
 }
 
-struct s_alloc_chunk	*check_fastbin(unsigned int index)
-{
+struct s_alloc_chunk	*check_fastbin(unsigned int index) {
+
 	struct s_fastbinlist	*ret;
 
 	ret = malloc_struct.fastbin[index];
