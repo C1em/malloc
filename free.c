@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/15 22:41:18 by coremart          #+#    #+#             */
-/*   Updated: 2020/09/10 00:48:26 by coremart         ###   ########.fr       */
+/*   Updated: 2021/04/18 17:11:29 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,7 +25,6 @@ void				add_fastbin(struct s_alloc_chunk* chunk_ptr)
 	int						index;
 	struct s_fastbinlist	*tmp;
 
-	printf("add fastbin, size: %zu\n", chunk_ptr->size_n_bits & CHUNK_SIZE);
 	index = ((chunk_ptr->size_n_bits & CHUNK_SIZE) >> 4) - 2; // (size - 32) / 16
 	((struct s_fastbinlist*)chunk_ptr)->next = malloc_struct.fastbin[index];
 	malloc_struct.fastbin[index] = (struct s_fastbinlist*)chunk_ptr;
@@ -50,7 +49,6 @@ void			add_unsorted(struct s_binlist* chunk_ptr)
 {
 	struct s_binlist	*unsotedlist;
 
-	printf("add unsorted size: %zu\n", chunk_ptr->size_n_bits & CHUNK_SIZE);
 	unsotedlist = (struct s_binlist*)&malloc_struct.bin[-2];
 	chunk_ptr->prev = unsotedlist->prev;
 	chunk_ptr->next = unsotedlist;
@@ -117,7 +115,6 @@ struct s_binlist	*coalesce_tinychunk(struct s_binlist *chunk_ptr)
 	if (!(next_chunk->size_n_bits & ISTOPCHUNK)
 	&& !(((struct s_binlist *)((char*)next_chunk + (next_chunk->size_n_bits & CHUNK_SIZE)))->size_n_bits & PREVINUSE))
 	{
-		printf("calesce next\n");
 		tmp = next_chunk->size_n_bits & CHUNK_SIZE;
 		if (new_sz + tmp <= TINY_TRESHOLD + 0x7)
 		{
@@ -127,7 +124,6 @@ struct s_binlist	*coalesce_tinychunk(struct s_binlist *chunk_ptr)
 	}
 	if (!(chunk_ptr->size_n_bits & PREVINUSE))
 	{
-		printf("calesce prev\n");
 		prev_chunk = (struct s_binlist*)((char*)chunk_ptr - chunk_ptr->prevsize);
 		tmp = prev_chunk->size_n_bits & (CHUNK_SIZE | PREVINUSE);
 		if (new_sz + tmp <= TINY_TRESHOLD + 0x7)
@@ -147,7 +143,6 @@ void				do_small(struct s_binlist *chunk_ptr)
 	chunk_ptr = coalesce_smallchunk(chunk_ptr);
 	if ((char*)chunk_ptr + (chunk_ptr->size_n_bits & CHUNK_SIZE)  + sizeof(size_t)== malloc_struct.topchunk_smallarena)
 	{
-		// print("new top chunk");
 		while ((chunk_ptr->size_n_bits & PREVINUSE) == false)
 		{
 			chunk_ptr = (struct s_binlist*)((char*)chunk_ptr - chunk_ptr->prevsize);
@@ -161,9 +156,11 @@ void				do_small(struct s_binlist *chunk_ptr)
 		add_unsorted(chunk_ptr);
 }
 
-void				do_tiny(struct s_binlist *chunk_ptr)
-{
+void				do_tiny(struct s_binlist *chunk_ptr) {
+
+
 	chunk_ptr = coalesce_tinychunk(chunk_ptr);
+	// If the new chunk is the new top chunk
 	if ((char*)chunk_ptr + (chunk_ptr->size_n_bits & CHUNK_SIZE)  + sizeof(size_t) == malloc_struct.topchunk_tinyarena)
 	{
 		while (!(chunk_ptr->size_n_bits & PREVINUSE))
@@ -171,7 +168,6 @@ void				do_tiny(struct s_binlist *chunk_ptr)
 			chunk_ptr = (struct s_binlist*)((char*)chunk_ptr - chunk_ptr->prevsize);
 			unlink_chunk(chunk_ptr);
 		}
-		printf("change top chunk\n");
 		chunk_ptr->size_n_bits |= ISTOPCHUNK;
 		malloc_struct.topchunk_tinyarena = (char*)chunk_ptr + sizeof(size_t);
 	}
@@ -179,8 +175,8 @@ void				do_tiny(struct s_binlist *chunk_ptr)
 		add_unsorted(chunk_ptr);
 }
 
-void				free(void *ptr)
-{
+void				free(void *ptr) {
+
 	struct s_alloc_chunk *chunk_ptr;
 
 	if (ptr == NULL || malloc_struct.bin[0] == NULL)

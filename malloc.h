@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:27:04 by coremart          #+#    #+#             */
-/*   Updated: 2020/09/09 20:16:06 by coremart         ###   ########.fr       */
+/*   Updated: 2021/04/24 19:11:26 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,27 +17,49 @@
 
 # define HEADER_SIZE		sizeof(struct s_alloc_chunk)
 
-# define TINY_TRESHOLD		512
-# define SMALL_TRESHOLD		1024
-# define FASTBIN_MAX		272
-// # define FASTBIN_MAX		16
+# define TINY_TRESHOLD			512
+# define SMALL_TRESHOLD			1024
+# define FASTBIN_MAX			272
 
-# define PAGE_SZ			getpagesize()
-# define NEXT_8MULT(x)		((7 + x) & ~7)
-# define NEXT_16MULT(x)		((15 + x) & ~15)
-# define NEXT_PAGEALIGN(x)	((PAGE_SZ - 1 + x) & ~(PAGE_SZ - 1))
-# define NEXT_PW2(x)		(1 << (32 - __builtin_clz(x - 1)))
+# define PAGE_SZ				getpagesize()
+# define NEXT_8MULT(x)			((7 + x) & ~7)
+# define NEXT_16MULT(x)			((15 + x) & ~15)
+# define NEXT_PAGEALIGN(x)		((PAGE_SZ - 1 + x) & ~(PAGE_SZ - 1))
+# define NEXT_PW2(x)			(1 << (32 - __builtin_clz(x - 1)))
 
 // # define TINY_ARENA_SZ		NEXT_PAGEALIGN((TINY_TRESHOLD + HEADER_SIZE) * 100)
-# define TINY_ARENA_SZ		NEXT_PAGEALIGN((TINY_TRESHOLD + HEADER_SIZE))
-# define SMALL_ARENA_SZ		NEXT_PAGEALIGN((SMALL_TRESHOLD + HEADER_SIZE) * 100)
+# define TINY_ARENA_SZ			NEXT_PAGEALIGN((TINY_TRESHOLD + HEADER_SIZE))
+# define SMALL_ARENA_SZ			NEXT_PAGEALIGN((SMALL_TRESHOLD + HEADER_SIZE) * 100)
 
-# define PREVINUSE			0x1
-# define ISTOPCHUNK			0x2
-# define CHUNK_SIZE			~0x7UL
+# define PREVINUSE				0x1
+# define ISTOPCHUNK				0x2 // the top chunk of an arena
+# define BITS					0x7
+# define CHUNK_SIZE				~0x7UL
 
-# define NBINS				128
+# define NBINS					128
 
+# define PTR_OFFSET(p, offset)	((void*)((char*)(p) + (offset)))
+
+/*
+** Freed chunk:
+**
+**	chunk ->		+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+**					|             Size of previous chunk, if freed (8 bytes)        |
+**					+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+**					|             Size of chunk, in bytes (8 bytes)             |I|P|
+**	mem ->			+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+**					|             Forward pointer to next chunk in list (8 bytes)   |
+**					+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+**					|             Back pointer to previous chunk in list (8 bytes)  |
+**					+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+**					|             Unused space (may be 0 bytes long)                |
+**					|                                                               |
+**					|                                                               |
+**	nextchunk ->	+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+**					|             Size of chunk, in bytes (8 bytes)                 |
+**					+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+**
+*/
 struct s_binlist
 {
 	size_t				prevsize;
@@ -54,21 +76,47 @@ struct s_fastbinlist
 	struct s_fastbinlist*	next;
 };
 
+/*
+** Allocated chunk:
+**
+**	chunk ->		+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+**					|             Size of previous chunk, if freed (8 bytes)        |
+**					+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+**					|             Size of chunk, in bytes (8 bytes)             |I|P|
+**	mem ->			+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+**					|             User data                                         |
+**					|                                                               |
+**	nextchunk ->	+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+**					|             User data (8 bytes)                               |
+**					+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+**
+**	Note that the 8 first bytes of nextchunk are user data when it is allocated
+*/
 struct s_alloc_chunk
 {
 	size_t			prevsize;
 	size_t			size_n_bits;
 };
 
+/*
+** Arena header
+**
+** Arena first chunk: PREVINUSE always set
+** Arena last chunk: ISTOPCHUNK always set
+**		if is also the the topchunk of arenalist:
+**			size is 0 and PREVINUSE is always set
+**		else:
+**			size is 16 + lost memory (can be 0 or 16 or 32)
+*/
 struct s_arena
 {
 	struct s_arena*		prev;
 };
 
-//optimize size ???
+//TODO: optimize size
 struct s_malloc_struct
 {
-	unsigned int			mmap_threshold; // ??? the more you free, the more it grows
+	unsigned int			mmap_threshold; // TODO: the more you free, the more it grows
 	struct s_arena			*tinyarenalist;
 	void					*topchunk_tinyarena;
 	struct s_arena			*smallarenalist;
@@ -80,6 +128,18 @@ struct s_malloc_struct
 	//32 48 64 80 96 112 128 144 160 176 192 208 224 240 256 272
 	struct s_fastbinlist*	fastbin[(FASTBIN_MAX >> 4) - 1];
 };
+
+/*
+**	chunk_op.c
+*/
+inline unsigned int	get_bits(void *ptr);
+inline void			add_bits(void *ptr, unsigned int bits);
+inline void			rm_bits(void *ptr, unsigned int bits);
+inline size_t		get_chunk_size(void *ptr);
+inline void			set_chunk_size(void *ptr, size_t sz);
+inline void			*ptr_offset(void *ptr, size_t offset);
+inline void			*next_chunk(void* ptr);
+inline size_t		chunk_size_from_user_size(size_t user_data);
 
 void		*malloc(size_t size);
 void		free(void *ptr);
