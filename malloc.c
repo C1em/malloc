@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:26:54 by coremart          #+#    #+#             */
-/*   Updated: 2021/04/25 15:19:59 by coremart         ###   ########.fr       */
+/*   Updated: 2021/04/25 15:49:50 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -76,7 +76,7 @@ struct s_alloc_chunk	*check_tinybin(size_t size) {
 	return ((struct s_alloc_chunk*)ret);
 }
 
-struct s_alloc_chunk	*do_fastbin(size_t size) {
+struct s_alloc_chunk	*coalesce_fastbin(size_t size) {
 
 	struct s_fastbinlist	*ret;
 
@@ -106,7 +106,7 @@ struct s_alloc_chunk	*get_from_tinytopchunk(size_t size) {
 
 	struct s_alloc_chunk *topchunk = malloc_struct.topchunk_tinyarena;
 	// If size is too big to fit in
-	if ((size_t)topchunk + size + sizeof(struct s_any_chunk) > (size_t)malloc_struct.tinyarenalist + TINY_ARENA_SZ)
+	if ((size_t)topchunk + size + HEADER_SIZE > (size_t)malloc_struct.tinyarenalist + TINY_ARENA_SZ)
 		return (NULL);
 
 	set_alloc_chunk_size(topchunk, size);
@@ -132,7 +132,7 @@ struct s_alloc_chunk	*new_tinyarena(size_t size) {
 		return(NULL);
 	// end_arena - topchunk - footer
 	size_t chunk_size = (size_t)malloc_struct.tinyarenalist + TINY_ARENA_SZ
-	- (size_t)malloc_struct.topchunk_tinyarena - sizeof(struct s_any_chunk);
+	- (size_t)malloc_struct.topchunk_tinyarena - HEADER_SIZE;
 
 	// If the last part of the arena has enough space left to store a chunk
 	if (chunk_size >= 32) {
@@ -140,7 +140,7 @@ struct s_alloc_chunk	*new_tinyarena(size_t size) {
 		// We can safely add the PREVINUSE bit coz we know the last chunk is not free otherwise is would be the topchunk
 		malloc_struct.topchunk_tinyarena->size_n_bits = PREVINUSE;
 		set_freed_chunk_size(malloc_struct.topchunk_tinyarena, chunk_size);
-		next_chunk(malloc_struct.topchunk_tinyarena)->size_n_bits = sizeof(struct s_any_chunk) | ISTOPCHUNK;
+		next_chunk(malloc_struct.topchunk_tinyarena)->size_n_bits = HEADER_SIZE | ISTOPCHUNK;
 
 		add_tinybin((struct s_binlist*)malloc_struct.topchunk_tinyarena);
 	}
@@ -161,8 +161,7 @@ void		*tiny_malloc(size_t size) {
 	struct s_alloc_chunk *(*malloc_strategy[5])(size_t) = {
 		check_fastbin,
 		check_tinybin,
-		do_fastbin,
-		// check_larger_fastbin (return a larger chunk (split it if possible))
+		coalesce_fastbin,
 		get_from_tinytopchunk,
 		new_tinyarena
 	};

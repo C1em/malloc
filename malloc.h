@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:27:04 by coremart          #+#    #+#             */
-/*   Updated: 2021/04/25 13:34:46 by coremart         ###   ########.fr       */
+/*   Updated: 2021/04/25 16:13:34 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,7 +15,7 @@
 
 # include <unistd.h>
 
-# define HEADER_SIZE		sizeof(struct s_alloc_chunk)
+# define HEADER_SIZE			sizeof(struct s_any_chunk)
 
 # define TINY_TRESHOLD			512
 # define SMALL_TRESHOLD			2048
@@ -27,8 +27,7 @@
 # define NEXT_PAGEALIGN(x)		((PAGE_SZ - 1 + x) & ~(PAGE_SZ - 1))
 # define NEXT_PW2(x)			(1 << (32 - __builtin_clz(x - 1)))
 
-// # define TINY_ARENA_SZ		NEXT_PAGEALIGN((TINY_TRESHOLD + HEADER_SIZE) * 100)
-# define TINY_ARENA_SZ			NEXT_PAGEALIGN((TINY_TRESHOLD + HEADER_SIZE))
+# define TINY_ARENA_SZ			NEXT_PAGEALIGN((TINY_TRESHOLD + HEADER_SIZE) * 100)
 # define SMALL_ARENA_SZ			NEXT_PAGEALIGN((SMALL_TRESHOLD + HEADER_SIZE) * 100)
 
 # define PREVINUSE				0x1
@@ -58,8 +57,8 @@
 **					+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 **
 */
-struct s_binlist
-{
+struct s_binlist {
+
 	size_t				prevsize;
 	size_t				size_n_bits;
 	struct s_binlist*	next;
@@ -67,8 +66,8 @@ struct s_binlist
 };
 
 
-struct s_fastbinlist
-{
+struct s_fastbinlist {
+
 	size_t					prevsize;
 	size_t					size_n_bits;
 	struct s_fastbinlist*	next;
@@ -90,8 +89,8 @@ struct s_fastbinlist
 **
 **	Note that the 8 first bytes of nextchunk are user data when it is allocated
 */
-struct s_alloc_chunk
-{
+struct s_alloc_chunk {
+
 	size_t			prevsize;
 	size_t			size_n_bits;
 };
@@ -99,8 +98,8 @@ struct s_alloc_chunk
 /*
 ** Any chunk (cleaner code)
 */
-struct s_any_chunk
-{
+struct s_any_chunk {
+
 	size_t			prevsize;
 	size_t			size_n_bits;
 };
@@ -115,14 +114,14 @@ struct s_any_chunk
 **		else:
 **			size is 16 + lost memory (can be 0 or 16 or 32)
 */
-struct s_arena
-{
+struct s_arena {
+
 	struct s_arena*		prev;
 };
 
 //TODO: optimize size
-struct s_malloc_struct
-{
+struct s_malloc_struct {
+
 	unsigned int			mmap_threshold; // TODO: the more you free, the more it grows
 	struct s_arena			*tinyarenalist;
 	struct s_any_chunk		*topchunk_tinyarena; // pointer on the last chunk of tinyarenalist
