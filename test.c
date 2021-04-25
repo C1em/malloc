@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   main.c                                             :+:      :+:    :+:   */
+/*   test.c                                             :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:27:57 by coremart          #+#    #+#             */
-/*   Updated: 2021/04/18 13:15:54 by coremart         ###   ########.fr       */
+/*   Updated: 2021/04/25 14:45:53 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -66,6 +66,7 @@ void print_allocchunk(struct s_alloc_chunk *chunkptr)
 }
 
 void random_test() {
+
 	char	*arr[512];
 	int		intarr[512];
 	int		alloc_index = 0;
@@ -73,18 +74,18 @@ void random_test() {
 
 	for (int i = 0; i < 512; i++) {
 
-	if (arc4random() % 2) {
+		if (arc4random() % 2) {
 
-		arr[alloc_index] = (char*)malloc((intarr[alloc_index] = arc4random() % 504));
-		for (int j = 0; j < intarr[alloc_index]; j++)
-			arr[alloc_index][j] = -1;
-		alloc_index++;
+			arr[alloc_index] = (char*)malloc((intarr[alloc_index] = arc4random() % 504));
+			for (int j = 0; j < intarr[alloc_index]; j++)
+				arr[alloc_index][j] = -1;
+			alloc_index++;
+		}
+		else if (free_index < alloc_index){
+			free(arr[free_index]);
+			free_index++;
+		}
 	}
-	else if (free_index < alloc_index){
-		free(arr[free_index]);
-		free_index++;
-	}
-}
 }
 
 int		main(void)

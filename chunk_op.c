@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/04/24 12:50:29 by coremart          #+#    #+#             */
-/*   Updated: 2021/04/24 16:03:03 by coremart         ###   ########.fr       */
+/*   Updated: 2021/04/24 20:34:01 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,27 +14,33 @@
 
 extern inline unsigned int	get_bits(void *ptr) {
 
-	return (((struct s_alloc_chunk*)ptr)->size_n_bits & BITS);
+	return (((struct s_any_chunk*)ptr)->size_n_bits & BITS);
 }
 
 extern inline void			add_bits(void *ptr, unsigned int bits) {
 
-	((struct s_alloc_chunk*)ptr)->size_n_bits |= bits;
+	((struct s_any_chunk*)ptr)->size_n_bits |= bits;
 }
 
 extern inline void			rm_bits(void *ptr, unsigned int bits) {
 
-	((struct s_alloc_chunk*)ptr)->size_n_bits &= ~bits;
+	((struct s_any_chunk*)ptr)->size_n_bits &= ~bits;
 }
 
 extern inline size_t		get_chunk_size(void *ptr) {
 
-	return (((struct s_alloc_chunk*)ptr)->size_n_bits & CHUNK_SIZE);
+	return (((struct s_any_chunk*)ptr)->size_n_bits & CHUNK_SIZE);
 }
 
-extern inline void			set_chunk_size(void *ptr, size_t sz) {
+extern inline void			set_freed_chunk_size(void *ptr, size_t sz) {
 
-	((struct s_alloc_chunk*)ptr)->size_n_bits = sz + (((struct s_alloc_chunk*)ptr)->size_n_bits & BITS);
+	((struct s_any_chunk*)ptr)->size_n_bits = sz | (size_t)get_bits(ptr);
+	next_chunk(ptr)->prevsize = sz;
+}
+
+extern inline void			set_alloc_chunk_size(void *ptr, size_t sz) {
+
+	((struct s_any_chunk*)ptr)->size_n_bits = sz | (size_t)get_bits(ptr);
 }
 
 extern inline void			*ptr_offset(void *ptr, size_t offset) {
@@ -42,9 +48,9 @@ extern inline void			*ptr_offset(void *ptr, size_t offset) {
 	return ((char*)ptr + offset);
 }
 
-extern inline void			*next_chunk(void* ptr) {
+extern inline struct s_any_chunk	*next_chunk(void* ptr) {
 
-	return (ptr_offset(ptr, get_chunk_size(ptr)));
+	return ((struct s_any_chunk*)ptr_offset(ptr, get_chunk_size(ptr)));
 }
 
 

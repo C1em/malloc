@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/15 22:41:18 by coremart          #+#    #+#             */
-/*   Updated: 2021/04/18 17:11:29 by coremart         ###   ########.fr       */
+/*   Updated: 2021/04/24 19:42:15 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -64,7 +64,7 @@ void				unlink_chunk(struct s_binlist *chunk_ptr)
 }
 
 /*
-**	coelesce chunk forward and backward and unlink chunk from binlist
+* coelesce chunk forward and backward and unlink chunk from binlist
 */
 struct s_binlist	*coalesce_smallchunk(struct s_binlist *chunk_ptr)
 {

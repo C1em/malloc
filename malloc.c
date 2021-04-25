@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:26:54 by coremart          #+#    #+#             */
-/*   Updated: 2021/04/24 18:14:05 by coremart         ###   ########.fr       */
+/*   Updated: 2021/04/25 15:19:59 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -72,58 +72,49 @@ struct s_alloc_chunk	*check_tinybin(size_t size) {
 		return (NULL);
 	ret = ret->prev;
 	unlink_chunk(ret);
-	((struct s_alloc_chunk*)((char*)ret + (ret->size_n_bits & CHUNK_SIZE)))->size_n_bits |= PREVINUSE;
+	add_bits(next_chunk(ret), PREVINUSE);
 	return ((struct s_alloc_chunk*)ret);
 }
 
-struct s_alloc_chunk	*do_fastbin(const size_t size) {
+struct s_alloc_chunk	*do_fastbin(size_t size) {
 
 	struct s_fastbinlist	*ret;
-	unsigned int			i;
 
-	i = 0;
-	while (i < (FASTBIN_MAX >> 4) - 1) {
+	// Iter through fastbins
+	for (unsigned int i = 0; i < (FASTBIN_MAX >> 4) - 1; i++) {
 
 		ret = malloc_struct.fastbin[i];
 		while (ret != NULL) {
-			malloc_struct.fastbin[i] = ret->next;
-			ret = (struct s_fastbinlist*)coalesce_tinychunk((struct s_binlist*)ret);
-			if ((ret->size_n_bits & CHUNK_SIZE) == size) {
 
-				((struct s_alloc_chunk*)((char*)ret + (ret->size_n_bits & CHUNK_SIZE)))->size_n_bits |= PREVINUSE;
+			ret = (struct s_fastbinlist*)coalesce_tinychunk((struct s_binlist*)ret);
+			// If the coalesced chunk is large enough
+			if (get_chunk_size(ret) >= size) {
+
+				malloc_struct.fastbin[i] = ret->next;
+				// TODO: split_chunk_for_size()
 				return ((struct s_alloc_chunk*)ret);
 			}
-			// check if is the new top chunk ????
-			add_tinybin((struct s_binlist*)ret);
-			ret = malloc_struct.fastbin[i];
+			ret = ret->next;
+			// TODO: split_chunk()
 		}
-		i++;
 	}
 	return (NULL);
 }
 
+
 struct s_alloc_chunk	*get_from_tinytopchunk(size_t size) {
 
+	struct s_alloc_chunk *topchunk = malloc_struct.topchunk_tinyarena;
 	// If size is too big to fit in
-	if (PTR_OFFSET(malloc_struct.topchunk_tinyarena, size + sizeof(size_t)) > PTR_OFFSET(malloc_struct.tinyarenalist, TINY_ARENA_SZ))
+	if ((size_t)topchunk + size + sizeof(struct s_any_chunk) > (size_t)malloc_struct.tinyarenalist + TINY_ARENA_SZ)
 		return (NULL);
 
-	struct s_alloc_chunk *topchunk = (struct s_alloc_chunk*)PTR_OFFSET(malloc_struct.topchunk_tinyarena, - (long)sizeof(size_t));
-
-	set_chunk_size(topchunk, size);
+	set_alloc_chunk_size(topchunk, size);
 	rm_bits(topchunk, ISTOPCHUNK);
 
-	if ((char*)+ size +  > (char*)malloc_struct.tinyarenalist + TINY_ARENA_SZ) {
+	malloc_struct.topchunk_tinyarena = next_chunk(malloc_struct.topchunk_tinyarena);
+	malloc_struct.topchunk_tinyarena->size_n_bits = PREVINUSE | ISTOPCHUNK;;
 
-		size = (size_t)((char*)malloc_struct.tinyarenalist + TINY_ARENA_SZ - (char*)topchunk) - sizeof(struct s_alloc_chunk);
-		if (size > TINY_TRESHOLD)
-			size = TINY_TRESHOLD;
-	}
-
-	set_chunk_size(next_chunk(topchunk), 0);
-	add_bits(next_chunk(topchunk), PREVINUSE | ISTOPCHUNK);
-
-	malloc_struct.topchunk_tinyarena = PTR_OFFSET(topchunk, size + sizeof(size_t));
 	return (topchunk);
 }
 
@@ -139,30 +130,29 @@ struct s_alloc_chunk	*new_tinyarena(size_t size) {
 	);
 	if (new_arena == (void*)-1)
 		return(NULL);
-
-	struct s_binlist *last_chunk = (struct s_binlist*)PTR_OFFSET(malloc_struct.topchunk_tinyarena, - sizeof(size_t));
+	// end_arena - topchunk - footer
 	size_t chunk_size = (size_t)malloc_struct.tinyarenalist + TINY_ARENA_SZ
-	- (size_t)last_chunk - sizeof(struct s_alloc_chunk);
+	- (size_t)malloc_struct.topchunk_tinyarena - sizeof(struct s_any_chunk);
 
 	// If the last part of the arena has enough space left to store a chunk
 	if (chunk_size >= 32) {
 
-		((struct s_alloc_chunk*)PTR_OFFSET(last_chunk, chunk_size))->size_n_bits = ISTOPCHUNK;
+		// We can safely add the PREVINUSE bit coz we know the last chunk is not free otherwise is would be the topchunk
+		malloc_struct.topchunk_tinyarena->size_n_bits = PREVINUSE;
+		set_freed_chunk_size(malloc_struct.topchunk_tinyarena, chunk_size);
+		next_chunk(malloc_struct.topchunk_tinyarena)->size_n_bits = sizeof(struct s_any_chunk) | ISTOPCHUNK;
 
-		// We can safely add the PREVINUSE bit coz we know the last chunk is not free otherwise is would be the top chunk
-		last_chunk->size_n_bits = chunk_size | PREVINUSE;
-
-		add_tinybin(last_chunk);
+		add_tinybin((struct s_binlist*)malloc_struct.topchunk_tinyarena);
 	}
 
 	new_arena->prev = malloc_struct.tinyarenalist;
 	malloc_struct.tinyarenalist = new_arena;
 
-	set_chunk_size(new_arena, size);
+	set_alloc_chunk_size(new_arena, size);
 	add_bits(new_arena, PREVINUSE);
 
-	add_bits(PTR_OFFSET(new_arena, size), PREVINUSE | ISTOPCHUNK);
-	malloc_struct.topchunk_tinyarena = PTR_OFFSET(new_arena, size + sizeof(size_t));
+	add_bits(next_chunk(new_arena), PREVINUSE | ISTOPCHUNK);
+	malloc_struct.topchunk_tinyarena = next_chunk(new_arena);
 	return((struct s_alloc_chunk*)new_arena);
 }
 
@@ -172,6 +162,7 @@ void		*tiny_malloc(size_t size) {
 		check_fastbin,
 		check_tinybin,
 		do_fastbin,
+		// check_larger_fastbin (return a larger chunk (split it if possible))
 		get_from_tinytopchunk,
 		new_tinyarena
 	};
@@ -181,7 +172,7 @@ void		*tiny_malloc(size_t size) {
 
 		ret = malloc_strategy[i](size);
 		if (ret != NULL)
-			return (PTR_OFFSET(ret, HEADER_SIZE));
+			return (ptr_offset(ret, HEADER_SIZE));
 	}
 	return (NULL);
 }
@@ -200,7 +191,7 @@ bool		malloc_init(void) {
 	if (malloc_struct.tinyarenalist == (void*)-1)
 		return(false);
 	add_bits(malloc_struct.tinyarenalist, PREVINUSE | ISTOPCHUNK);
-	malloc_struct.topchunk_tinyarena = PTR_OFFSET(malloc_struct.tinyarenalist, sizeof(struct s_arena));
+	malloc_struct.topchunk_tinyarena = ptr_offset(malloc_struct.tinyarenalist, sizeof(struct s_arena));
 
 	malloc_struct.smallarenalist =  mmap(
 		NULL,
@@ -214,7 +205,7 @@ bool		malloc_init(void) {
 	if (malloc_struct.smallarenalist == (void*)-1)
 		return (false);
 	add_bits(malloc_struct.smallarenalist, PREVINUSE | ISTOPCHUNK);
-	malloc_struct.topchunk_smallarena = PTR_OFFSET(malloc_struct.smallarenalist, sizeof(struct s_arena));
+	malloc_struct.topchunk_smallarena = ptr_offset(malloc_struct.smallarenalist, sizeof(struct s_arena));
 
 	// Each bin is a looping list where bin[0] is the next elem and bin[1] is the prev elem
 	// then bin[2] is the next elem and bin[3] is the prev
@@ -229,6 +220,7 @@ bool		malloc_init(void) {
 }
 
 void		*malloc(size_t size) {
+
 	if (size >= ULONG_MAX - getpagesize() - HEADER_SIZE || size == 0)
 		return (NULL);
 	if (malloc_struct.bin[0] == NULL)
