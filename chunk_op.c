@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/04/24 12:50:29 by coremart          #+#    #+#             */
-/*   Updated: 2021/04/24 20:34:01 by coremart         ###   ########.fr       */
+/*   Updated: 2021/06/18 13:58:22 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,7 +35,7 @@ extern inline size_t		get_chunk_size(void *ptr) {
 extern inline void			set_freed_chunk_size(void *ptr, size_t sz) {
 
 	((struct s_any_chunk*)ptr)->size_n_bits = sz | (size_t)get_bits(ptr);
-	next_chunk(ptr)->prevsize = sz;
+	get_next_chunk(ptr)->prevsize = sz;
 }
 
 extern inline void			set_alloc_chunk_size(void *ptr, size_t sz) {
@@ -48,7 +48,7 @@ extern inline void			*ptr_offset(void *ptr, size_t offset) {
 	return ((char*)ptr + offset);
 }
 
-extern inline struct s_any_chunk	*next_chunk(void* ptr) {
+extern inline struct s_any_chunk	*get_next_chunk(void* ptr) {
 
 	return ((struct s_any_chunk*)ptr_offset(ptr, get_chunk_size(ptr)));
 }

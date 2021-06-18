@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/15 22:41:18 by coremart          #+#    #+#             */
-/*   Updated: 2021/04/25 16:11:55 by coremart         ###   ########.fr       */
+/*   Updated: 2021/06/18 15:25:20 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,7 +36,7 @@ void			add_tinybin(struct s_binlist *chunk) {
 	chunk->next = tinybin;
 	tinybin->prev->next = chunk;
 	tinybin->prev = chunk;
-	rm_bits(next_chunk(chunk), PREVINUSE);
+	rm_bits(get_next_chunk(chunk), PREVINUSE);
 }
 
 void			add_unsorted(struct s_binlist* chunk) {
@@ -46,7 +46,7 @@ void			add_unsorted(struct s_binlist* chunk) {
 	chunk->next = unsotedlist;
 	unsotedlist->prev->next = chunk;
 	unsotedlist->prev = chunk;
-	rm_bits(next_chunk(chunk), PREVINUSE);
+	rm_bits(get_next_chunk(chunk), PREVINUSE);
 }
 
 void				unlink_chunk(struct s_binlist *chunk) {
@@ -94,22 +94,30 @@ struct s_binlist	*coalesce_smallchunk(struct s_binlist *chunk_ptr) {
 	return (chunk_ptr);
 }
 
-struct s_binlist	*coalesce_tinychunk(struct s_binlist *chunk_ptr) {
+
+struct s_binlist	*new_coalesce_tinychunk(struct s_any_chunk *chunk_ptr) {
+
+	if (chunk_ptr == malloc_struct.topchunk_tinyarena)
+	;
+}
+
+
+struct s_binlist	*coalesce_tinychunk(struct s_any_chunk *chunk_ptr) {
 
 	struct s_binlist	*next_chunk;
 	struct s_binlist	*prev_chunk;
 	size_t				new_sz;
 	size_t				tmp;
 
-	next_chunk = (struct s_binlist*)((char*)chunk_ptr + (chunk_ptr->size_n_bits & CHUNK_SIZE));
+	next_chunk = (struct s_binlist*)get_next_chunk(chunk_ptr);
 	new_sz = chunk_ptr->size_n_bits;
 	// chunk_ptr is not the last chunk and next_chunk is not in use
-	if (!(next_chunk->size_n_bits & ISTOPCHUNK)
-	&& !(((struct s_binlist *)((char*)next_chunk + (next_chunk->size_n_bits & CHUNK_SIZE)))->size_n_bits & PREVINUSE))
-	{
+	if (!(get_bits(next_chunk) & ISTOPCHUNK)
+	&& !(get_bits(get_next_chunk(next_chunk)) & PREVINUSE)) {
+
 		tmp = next_chunk->size_n_bits & CHUNK_SIZE;
-		if (new_sz + tmp <= TINY_TRESHOLD + 0x7)
-		{
+		if (new_sz + tmp <= TINY_TRESHOLD + 0x7) {
+
 			new_sz += tmp;
 			unlink_chunk(next_chunk);
 		}

@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:27:04 by coremart          #+#    #+#             */
-/*   Updated: 2021/04/25 16:13:34 by coremart         ###   ########.fr       */
+/*   Updated: 2021/06/18 16:37:46 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,7 +49,7 @@
 **					+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 **					|             Back pointer to previous chunk in list (8 bytes)  |
 **					+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-**					|             Unused space (may be 0 bytes long)                |
+**					|             Unused space (can be 0 bytes long)                |
 **					|                                                               |
 **					|                                                               |
 **	nextchunk ->	+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -64,7 +64,6 @@ struct s_binlist {
 	struct s_binlist*	next;
 	struct s_binlist*	prev;
 };
-
 
 struct s_fastbinlist {
 
@@ -112,7 +111,7 @@ struct s_any_chunk {
 **		if is also the the topchunk of arenalist:
 **			size is 0 and PREVINUSE is always set
 **		else:
-**			size is 16 + lost memory (can be 0 or 16 or 32)
+**			size is 16 + lost memory (can be 0 or 16)
 */
 struct s_arena {
 
@@ -148,13 +147,13 @@ inline size_t				get_chunk_size(void *ptr);
 inline void					set_freed_chunk_size(void *ptr, size_t sz);
 inline void					set_alloc_chunk_size(void *ptr, size_t sz);
 inline void					*ptr_offset(void *ptr, size_t offset);
-inline struct s_any_chunk	*next_chunk(void* ptr);
+inline struct s_any_chunk	*get_next_chunk(void* ptr);
 inline size_t				chunk_size_from_user_size(size_t user_data);
 
 void						*malloc(size_t size);
 void						free(void *ptr);
 
-struct s_binlist			*coalesce_tinychunk(struct s_binlist *chunk_ptr);
+struct s_binlist			*coalesce_tinychunk(struct s_any_chunk *chunk_ptr);
 struct s_binlist			*coalesce_smallchunk(struct s_binlist *chunk_ptr);
 void						unlink_chunk(struct s_binlist *chunk_ptr);
 void						add_tinybin(struct s_binlist* chunk_ptr);
