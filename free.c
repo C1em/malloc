@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/15 22:41:18 by coremart          #+#    #+#             */
-/*   Updated: 2021/06/18 15:25:20 by coremart         ###   ########.fr       */
+/*   Updated: 2021/06/18 19:23:09 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,6 +24,7 @@ void				add_fastbin(struct s_alloc_chunk *chunk) {
 
 	unsigned int index = (get_chunk_size(chunk) >> 4) - 2; // (size - 32) / 16
 	((struct s_fastbinlist*)chunk)->next = malloc_struct.fastbin[index];
+	((struct s_binlist*)chunk)->prev = NULL;
 	malloc_struct.fastbin[index] = (struct s_fastbinlist*)chunk;
 }
 
@@ -52,6 +53,10 @@ void			add_unsorted(struct s_binlist* chunk) {
 void				unlink_chunk(struct s_binlist *chunk) {
 
 	chunk->next->prev = chunk->prev;
+
+	if (chunk->prev == NULL)
+		return
+
 	chunk->prev->next = chunk->next;
 }
 
@@ -94,11 +99,25 @@ struct s_binlist	*coalesce_smallchunk(struct s_binlist *chunk_ptr) {
 	return (chunk_ptr);
 }
 
+// WIP
+struct s_binlist	*new_coalesce_tinychunk(struct s_any_chunk *chunk_ptr, void(*unlink_chunk)(struct s_any_chunk)) {
 
-struct s_binlist	*new_coalesce_tinychunk(struct s_any_chunk *chunk_ptr) {
+	size_t new_sz = chunk_ptr->size_n_bits;
+
+	struct s_binlist *next_chunk = (struct s_binlist*)get_next_chunk(chunk_ptr);
+
+	while (!(get_bits(next_chunk) & ISTOPCHUNK)
+	&& !(get_bits(get_next_chunk(next_chunk)) & PREVINUSE)) {
+
+		new_sz += next_chunk->size_n_bits & CHUNK_SIZE;
+
+
+
+		next_chunk = get_next_chunk(next_chunk);
+	}
 
 	if (chunk_ptr == malloc_struct.topchunk_tinyarena)
-	;
+		;
 }
 
 

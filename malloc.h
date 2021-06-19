@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:27:04 by coremart          #+#    #+#             */
-/*   Updated: 2021/06/18 16:37:46 by coremart         ###   ########.fr       */
+/*   Updated: 2021/06/19 16:01:38 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,7 @@
 # define HEADER_SIZE			sizeof(struct s_any_chunk)
 
 # define TINY_TRESHOLD			512
-# define SMALL_TRESHOLD			2048
+# define SMALL_TRESHOLD			8704
 # define FASTBIN_MAX			272
 
 # define PAGE_SZ				getpagesize()
@@ -35,7 +35,16 @@
 # define BITS					0x7
 # define CHUNK_SIZE				~0x7UL
 
-# define NBINS					128
+# define NB_TINYBINS			(TINY_TRESHOLD / 32)
+# define NB_SMALLBINS			((SMALL_TRESHOLD - TINY_TRESHOLD) / 4) / 128 \
++ ((SMALL_TRESHOLD - TINY_TRESHOLD) / 4) / 256 \
++ ((SMALL_TRESHOLD - TINY_TRESHOLD) / 4) / 512 \
++ ((SMALL_TRESHOLD - TINY_TRESHOLD) / 4) / 1024
+
+
+# define NB_BIGFREED			2
+
+# define NBINS					NB_TINYBINS + NB_SMALLBINS + NB_BIGFREED
 
 /*
 ** Freed chunk:
@@ -128,8 +137,13 @@ struct s_malloc_struct {
 	struct s_any_chunk		*topchunk_smallarena; // pointer on the last chunk of tinyarenalist
 
 	// smallbin and tinybin are guaranteed to be coalesced
-	// [0, 1]: smallunsorted
-	struct s_binlist*		bin[NBINS * 2]; // ??? change array size one for each size of tiny arena + one for each n of small arena
+	// [0..31] tinybins: [0,1] is 32 to 63, [2,3] is 64 to 95 ..., [30,31] is 512 and more
+	// [32..63] smallbins < 2560: [32,33] is 512 to 639, [34,35] is 640 to 767 ..., [62,63] is 2432 to 2559
+	// [64..79] smallbins < 4608: [64,65] is 2560 to 2815, [66, 67] is 2816 to 3071 ..., [78,79] is 4352 to 4607
+	// [80..87] smallbins < 6656: [80,81] is 4608 to 5119, [82,83] is 5120 to 5631 ...,[86,87] is 6144 to 6655
+	// [88..91] smallbins < 8704: [88,89] is 6656 to 7679, [90,91] is 7680 to 8703
+	// [92,93] bigfreed >= 8704
+	struct s_binlist*		bin[NBINS * 2];
 
 	// 32 48 64 80 96 112 128 144 160 176 192 208 224 240 256 272
 	// fastbin is a special list that store recently freed chunk.

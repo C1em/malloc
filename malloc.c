@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:26:54 by coremart          #+#    #+#             */
-/*   Updated: 2021/06/18 16:35:39 by coremart         ###   ########.fr       */
+/*   Updated: 2021/06/18 19:12:51 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -66,7 +66,7 @@ static inline struct s_alloc_chunk	*check_fastbin(size_t size) {
 
 struct s_alloc_chunk	*check_tinybin(size_t size) {
 
-	unsigned int index = (size >> 3) - 4; // (size - 32) / 8
+	unsigned int index = (size >> 3) - 4; // (size - 32) / 8 + 2
 	struct s_binlist *ret = (struct s_binlist*)&malloc_struct.bin[index];
 	if (ret->next == ret)
 		return (NULL);
@@ -172,6 +172,7 @@ void		*tiny_malloc(size_t size) {
 		check_fastbin,
 		check_tinybin,
 		coalesce_fastbin,
+		// check_unsorted,
 		get_from_tinytopchunk,
 		new_tinyarena
 	};
