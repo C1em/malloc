@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:26:54 by coremart          #+#    #+#             */
-/*   Updated: 2021/06/18 19:12:51 by coremart         ###   ########.fr       */
+/*   Updated: 2021/06/21 19:47:44 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,7 +45,7 @@ void		*small_malloc(const size_t size) {
 	//if not enough in top chunk create new arena and add last top chunk to bins
 
 	// if a big small
-	if (size > (SMALL_TRESHOLD + TINY_TRESHOLD) >> 1)
+	if (size > (SMALL_THRESHOLD + TINY_THRESHOLD) >> 1)
 		//move fastbins to tiny unsorted
 		;
 }
@@ -239,9 +239,9 @@ void		*malloc(size_t size) {
 
 	size_t chunk_size =  chunk_size_from_user_size(size);
 
-	if (chunk_size > SMALL_TRESHOLD)
+	if (chunk_size >= SMALL_THRESHOLD)
 		return (large_malloc(chunk_size));
-	if (chunk_size > TINY_TRESHOLD)
+	if (chunk_size >= TINY_THRESHOLD)
 		return (small_malloc(chunk_size));
 	return (tiny_malloc(chunk_size));
 }

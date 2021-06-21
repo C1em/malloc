@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/15 22:41:18 by coremart          #+#    #+#             */
-/*   Updated: 2021/06/18 19:23:09 by coremart         ###   ########.fr       */
+/*   Updated: 2021/06/21 19:46:57 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -77,7 +77,7 @@ struct s_binlist	*coalesce_smallchunk(struct s_binlist *chunk_ptr) {
 	&& !(((struct s_binlist *)((char*)next_chunk + (next_chunk->size_n_bits & CHUNK_SIZE)))->size_n_bits & PREVINUSE))
 	{
 		tmp = next_chunk->size_n_bits & CHUNK_SIZE;
-		if (new_sz + tmp <= SMALL_TRESHOLD + 0x7)
+		if (new_sz + tmp <= SMALL_THRESHOLD + 0x7)
 		{
 			new_sz += tmp;
 			unlink_chunk(next_chunk);
@@ -87,7 +87,7 @@ struct s_binlist	*coalesce_smallchunk(struct s_binlist *chunk_ptr) {
 	{
 		prev_chunk = (struct s_binlist*)((char*)chunk_ptr - chunk_ptr->prevsize);
 		tmp = prev_chunk->size_n_bits & (CHUNK_SIZE | PREVINUSE);
-		if (new_sz + tmp <= SMALL_TRESHOLD + 0x7)
+		if (new_sz + tmp <= SMALL_THRESHOLD + 0x7)
 		{
 			new_sz += tmp;
 			chunk_ptr = prev_chunk;
@@ -135,7 +135,7 @@ struct s_binlist	*coalesce_tinychunk(struct s_any_chunk *chunk_ptr) {
 	&& !(get_bits(get_next_chunk(next_chunk)) & PREVINUSE)) {
 
 		tmp = next_chunk->size_n_bits & CHUNK_SIZE;
-		if (new_sz + tmp <= TINY_TRESHOLD + 0x7) {
+		if (new_sz + tmp <= TINY_TRHESHOLD + 0x7) {
 
 			new_sz += tmp;
 			unlink_chunk(next_chunk);
@@ -145,7 +145,7 @@ struct s_binlist	*coalesce_tinychunk(struct s_any_chunk *chunk_ptr) {
 	{
 		prev_chunk = (struct s_binlist*)((char*)chunk_ptr - chunk_ptr->prevsize);
 		tmp = prev_chunk->size_n_bits & (CHUNK_SIZE | PREVINUSE);
-		if (new_sz + tmp <= TINY_TRESHOLD + 0x7)
+		if (new_sz + tmp <= TINY_THRESHOLD + 0x7)
 		{
 			new_sz += tmp;
 			chunk_ptr = prev_chunk;
@@ -180,9 +180,9 @@ void				free(void *ptr) {
 	struct s_alloc_chunk *chunk = (struct s_alloc_chunk*)ptr_offset(ptr, - HEADER_SIZE);
 	if (get_chunk_size(chunk) <= FASTBIN_MAX)
 		add_fastbin(chunk);
-	else if (get_chunk_size(chunk) > SMALL_TRESHOLD)
+	else if (get_chunk_size(chunk) >= SMALL_THRESHOLD)
 		munmap((void*)chunk, get_chunk_size(chunk));
-	else if (get_chunk_size(chunk) <= TINY_TRESHOLD)
+	else if (get_chunk_size(chunk) < TINY_THRESHOLD)
 		do_tiny((struct s_binlist*)chunk);
 	else
 		do_small((struct s_binlist*)chunk);

@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:27:04 by coremart          #+#    #+#             */
-/*   Updated: 2021/06/19 16:01:38 by coremart         ###   ########.fr       */
+/*   Updated: 2021/06/21 19:45:40 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,8 +17,8 @@
 
 # define HEADER_SIZE			sizeof(struct s_any_chunk)
 
-# define TINY_TRESHOLD			512
-# define SMALL_TRESHOLD			8704
+# define TINY_THRESHOLD			512
+# define SMALL_THRESHOLD		10240
 # define FASTBIN_MAX			272
 
 # define PAGE_SZ				getpagesize()
@@ -27,22 +27,23 @@
 # define NEXT_PAGEALIGN(x)		((PAGE_SZ - 1 + x) & ~(PAGE_SZ - 1))
 # define NEXT_PW2(x)			(1 << (32 - __builtin_clz(x - 1)))
 
-# define TINY_ARENA_SZ			NEXT_PAGEALIGN((TINY_TRESHOLD + HEADER_SIZE) * 100)
-# define SMALL_ARENA_SZ			NEXT_PAGEALIGN((SMALL_TRESHOLD + HEADER_SIZE) * 100)
+# define TINY_ARENA_SZ			NEXT_PAGEALIGN((TINY_THRESHOLD + HEADER_SIZE) * 100)
+# define SMALL_ARENA_SZ			NEXT_PAGEALIGN((SMALL_THRESHOLD + HEADER_SIZE) * 100)
 
 # define PREVINUSE				0x1
 # define ISTOPCHUNK				0x2 // the top chunk of an arena
 # define BITS					0x7
 # define CHUNK_SIZE				~0x7UL
 
-# define NB_TINYBINS			(TINY_TRESHOLD / 32)
-# define NB_SMALLBINS			((SMALL_TRESHOLD - TINY_TRESHOLD) / 4) / 128 \
-+ ((SMALL_TRESHOLD - TINY_TRESHOLD) / 4) / 256 \
-+ ((SMALL_TRESHOLD - TINY_TRESHOLD) / 4) / 512 \
-+ ((SMALL_TRESHOLD - TINY_TRESHOLD) / 4) / 1024
+# define NB_TINYBINS			(TINY_THRESHOLD / 32)
+# define NB_SMALLBINS			((SMALL_THRESHOLD / 10) - TINY_THRESHOLD) / 64 \
++ (SMALL_THRESHOLD / 10) / 128 \
++ (SMALL_THRESHOLD / 5) / 256 \
++ (SMALL_THRESHOLD / 5) / 512 \
++ (SMALL_THRESHOLD / 5) / 1024 \
++ (SMALL_THRESHOLD / 5) / 2048 \
++ 1
 
-
-# define NB_BIGFREED			2
 
 # define NBINS					NB_TINYBINS + NB_SMALLBINS + NB_BIGFREED
 
@@ -138,12 +139,16 @@ struct s_malloc_struct {
 
 	// smallbin and tinybin are guaranteed to be coalesced
 	// [0..31] tinybins: [0,1] is 32 to 63, [2,3] is 64 to 95 ..., [30,31] is 512 and more
-	// [32..63] smallbins < 2560: [32,33] is 512 to 639, [34,35] is 640 to 767 ..., [62,63] is 2432 to 2559
-	// [64..79] smallbins < 4608: [64,65] is 2560 to 2815, [66, 67] is 2816 to 3071 ..., [78,79] is 4352 to 4607
-	// [80..87] smallbins < 6656: [80,81] is 4608 to 5119, [82,83] is 5120 to 5631 ...,[86,87] is 6144 to 6655
-	// [88..91] smallbins < 8704: [88,89] is 6656 to 7679, [90,91] is 7680 to 8703
-	// [92,93] bigfreed >= 8704
-	struct s_binlist*		bin[NBINS * 2];
+	struct s_binlist*		tinybin[NB_TINYBINS * 2];
+
+	// [0..15]	smallbins < 1024: [0,1] is 512 to 575, [2,3] is 576 to 639 ..., [14,15] is 960 to 1023
+	// [16..31]	smallbins < 2048: [16,17] is 1024 to 1151, [18, 19] is 1152 to 2303 ..., [30,31] is 1920 to 2047
+	// [32..47]	smallbins < 4096: [32,33] is 2048 to 2303, [34,35] is 2304 to 2559 ...,[46,47] is 3840 to 4095
+	// [48..55]	smallbins < 6144: [48,49] is 4096 to 4607, [50,51] is 4608 to 5119 ..., [54,55] is 5632 to 6143
+	// [56..59]	smallbins < 8192: [56,57] is 6144 to 7167, [58,59] is 7168 to 8191
+	// [60,61]	smallbins < 10240: [60,61] is 8192 to 10239
+	// [62,63]	smallbins >= 10240
+	struct s_binlist*		smallbin[NB_SMALLBINS * 2];
 
 	// 32 48 64 80 96 112 128 144 160 176 192 208 224 240 256 272
 	// fastbin is a special list that store recently freed chunk.
