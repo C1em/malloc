@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/15 22:41:18 by coremart          #+#    #+#             */
-/*   Updated: 2021/06/21 19:46:57 by coremart         ###   ########.fr       */
+/*   Updated: 2021/06/22 19:57:52 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,19 +30,22 @@ void				add_fastbin(struct s_alloc_chunk *chunk) {
 
 void			add_tinybin(struct s_binlist *chunk) {
 
-	// ((size - 32) / 16 + 1) * 2 - 2
-	unsigned int index = (get_chunk_size(chunk) >> 3) - 4;
-	struct s_binlist *tinybin = (struct s_binlist*)&malloc_struct.bin[index];
+	unsigned int index = (get_chunk_size(chunk) >> 4) - 2; // (size - 32) / 16
+	struct s_binlist *tinybin = (struct s_binlist*)&malloc_struct.tinybin[index];
+
 	chunk->prev = tinybin->prev;
 	chunk->next = tinybin;
 	tinybin->prev->next = chunk;
 	tinybin->prev = chunk;
+
 	rm_bits(get_next_chunk(chunk), PREVINUSE);
 }
 
+
+// TODO: make an unsorted for tiny and small
 void			add_unsorted(struct s_binlist* chunk) {
 
-	struct s_binlist *unsotedlist = (struct s_binlist*)&malloc_struct.bin[-2];
+	struct s_binlist *unsotedlist = (struct s_binlist*)&malloc_struct.tinybin[-2];
 	chunk->prev = unsotedlist->prev;
 	chunk->next = unsotedlist;
 	unsotedlist->prev->next = chunk;
@@ -171,7 +174,7 @@ void				do_tiny(struct s_binlist *chunk) {
 
 void				free(void *ptr) {
 
-	if (ptr == NULL || malloc_struct.bin[0] == NULL)
+	if (ptr == NULL || malloc_struct.tinybin[0] == NULL)
 		return;
 	// TODO: add checks:
 	// check if size is a mult of 16

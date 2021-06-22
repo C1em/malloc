@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:26:54 by coremart          #+#    #+#             */
-/*   Updated: 2021/06/21 19:47:44 by coremart         ###   ########.fr       */
+/*   Updated: 2021/06/22 19:52:47 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -66,8 +66,8 @@ static inline struct s_alloc_chunk	*check_fastbin(size_t size) {
 
 struct s_alloc_chunk	*check_tinybin(size_t size) {
 
-	unsigned int index = (size >> 3) - 4; // (size - 32) / 8 + 2
-	struct s_binlist *ret = (struct s_binlist*)&malloc_struct.bin[index];
+	unsigned int index = (size >> 4) - 2; // (size - 32) / 16
+	struct s_binlist *ret = (struct s_binlist*)&malloc_struct.tinybin[index];
 	if (ret->next == ret)
 		return (NULL);
 	ret = ret->prev;
@@ -220,9 +220,9 @@ bool		malloc_init(void) {
 	// Each bin is a looping list where bin[0] is the next elem and bin[1] is the prev elem
 	// then bin[2] is the next elem and bin[3] is the prev
 	struct s_binlist *init_bin;
-	for (unsigned int i = 0; i < NBINS; i++) {
+	for (unsigned int i = 0; i < NB_SMALLBINS + NB_TINYBINS; i++) {
 
-		init_bin = (struct s_binlist*)&malloc_struct.bin[(i << 1) - 2];
+		init_bin = (struct s_binlist*)&malloc_struct.smallbin[(i << 1) - 2];
 		init_bin->next = init_bin;
 		init_bin->prev = init_bin;
 	}
@@ -233,7 +233,7 @@ void		*malloc(size_t size) {
 
 	if (size >= ULONG_MAX - getpagesize() - HEADER_SIZE || size == 0)
 		return (NULL);
-	if (malloc_struct.bin[0] == NULL)
+	if (malloc_struct.tinybin[0] == NULL)
 		if (malloc_init() == false)
 			return (NULL);
 
