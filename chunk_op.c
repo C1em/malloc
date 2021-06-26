@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/04/24 12:50:29 by coremart          #+#    #+#             */
-/*   Updated: 2021/06/18 13:58:22 by coremart         ###   ########.fr       */
+/*   Updated: 2021/06/25 23:50:07 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,7 +43,7 @@ extern inline void			set_alloc_chunk_size(void *ptr, size_t sz) {
 	((struct s_any_chunk*)ptr)->size_n_bits = sz | (size_t)get_bits(ptr);
 }
 
-extern inline void			*ptr_offset(void *ptr, size_t offset) {
+extern inline void			*ptr_offset(void *ptr, long offset) {
 
 	return ((char*)ptr + offset);
 }
@@ -53,6 +53,10 @@ extern inline struct s_any_chunk	*get_next_chunk(void* ptr) {
 	return ((struct s_any_chunk*)ptr_offset(ptr, get_chunk_size(ptr)));
 }
 
+extern inline struct s_any_chunk	*get_prev_chunk(void* ptr) {
+
+	return ((struct s_any_chunk*)ptr_offset(ptr, -((struct s_any_chunk*)ptr)->prevsize));
+}
 
 /*
 **	Example with user_size = 24:
@@ -74,8 +78,8 @@ extern inline struct s_any_chunk	*get_next_chunk(void* ptr) {
 */
 extern inline size_t		chunk_size_from_user_size(size_t user_size) {
 
-	// Min size is 32
+	// min size is 32
 	if (user_size <= 24)
 		return (32);
-	user_size = (NEXT_8MULT(user_size) | 8) + sizeof(size_t);
+	return ((NEXT_8MULT(user_size) | 8) + sizeof(size_t));
 }

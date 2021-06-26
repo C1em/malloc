@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:26:54 by coremart          #+#    #+#             */
-/*   Updated: 2021/06/22 19:52:47 by coremart         ###   ########.fr       */
+/*   Updated: 2021/06/26 02:23:40 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,6 +48,7 @@ void		*small_malloc(const size_t size) {
 	if (size > (SMALL_THRESHOLD + TINY_THRESHOLD) >> 1)
 		//move fastbins to tiny unsorted
 		;
+	return NULL;
 }
 
 static inline struct s_alloc_chunk	*check_fastbin(size_t size) {
@@ -55,7 +56,7 @@ static inline struct s_alloc_chunk	*check_fastbin(size_t size) {
 	if (size > FASTBIN_MAX)
 		return (NULL);
 
-	unsigned int index = (size >> 4) - 2; // (size - 32) / 16
+	int index = (int)(size >> 4) - 2; // (size - 32) / 16
 	struct s_fastbinlist *ret = malloc_struct.fastbin[index];
 	if (ret == NULL)
 		return (NULL);
@@ -66,7 +67,7 @@ static inline struct s_alloc_chunk	*check_fastbin(size_t size) {
 
 struct s_alloc_chunk	*check_tinybin(size_t size) {
 
-	unsigned int index = (size >> 4) - 2; // (size - 32) / 16
+	int index = (int)(size >> 4) - 2; // (size - 32) / 16
 	struct s_binlist *ret = (struct s_binlist*)&malloc_struct.tinybin[index];
 	if (ret->next == ret)
 		return (NULL);
@@ -81,12 +82,12 @@ struct s_alloc_chunk	*coalesce_fastbin(size_t size) {
 	struct s_fastbinlist	*ret;
 
 	// Iter through fastbins
-	for (unsigned int i = 0; i < (FASTBIN_MAX >> 4) - 1; i++) {
+	for (int i = 0; i < (FASTBIN_MAX >> 4) - 1; i++) {
 
 		ret = malloc_struct.fastbin[i];
 		while (ret != NULL) {
 
-			ret = (struct s_fastbinlist*)coalesce_tinychunk((struct s_binlist*)ret);
+			ret = (struct s_fastbinlist*)coalesce_tinychunk((struct s_any_chunk*)ret);
 			// If the coalesced chunk is large enough
 			if (get_chunk_size(ret) >= size) {
 
@@ -95,7 +96,6 @@ struct s_alloc_chunk	*coalesce_fastbin(size_t size) {
 				return ((struct s_alloc_chunk*)ret);
 			}
 			ret = ret->next;
-			// TODO: split_chunk()
 		}
 	}
 	return (NULL);
@@ -104,7 +104,7 @@ struct s_alloc_chunk	*coalesce_fastbin(size_t size) {
 
 struct s_alloc_chunk	*get_from_tinytopchunk(size_t size) {
 
-	struct s_alloc_chunk *topchunk = malloc_struct.topchunk_tinyarena;
+	struct s_alloc_chunk *topchunk = (struct s_alloc_chunk*)malloc_struct.topchunk_tinyarena;
 
 	// If size is too big to fit in
 	if ((size_t)topchunk + size + HEADER_SIZE > (size_t)malloc_struct.tinyarenalist + TINY_ARENA_SZ)
@@ -129,6 +129,7 @@ struct s_alloc_chunk	*new_tinyarena(size_t size) {
 		-1,
 		0
 	);
+
 	if (new_arena == (void*)-1)
 		return(NULL);
 
@@ -178,7 +179,7 @@ void		*tiny_malloc(size_t size) {
 	};
 
 	struct s_alloc_chunk *ret = NULL;
-	for (unsigned int i = 0; i < sizeof(malloc_strategy) / sizeof(malloc_strategy[0]); i++) {
+	for (int i = 0; i < sizeof(malloc_strategy) / sizeof(malloc_strategy[0]); i++) {
 
 		ret = malloc_strategy[i](size);
 		if (ret != NULL)
@@ -201,7 +202,7 @@ bool		malloc_init(void) {
 	if (malloc_struct.tinyarenalist == (void*)-1)
 		return(false);
 	add_bits(malloc_struct.tinyarenalist, PREVINUSE | ISTOPCHUNK);
-	malloc_struct.topchunk_tinyarena = ptr_offset(malloc_struct.tinyarenalist, sizeof(struct s_arena));
+	malloc_struct.topchunk_tinyarena = (struct s_any_chunk*)malloc_struct.tinyarenalist;
 
 	malloc_struct.smallarenalist =  mmap(
 		NULL,
@@ -215,14 +216,14 @@ bool		malloc_init(void) {
 	if (malloc_struct.smallarenalist == (void*)-1)
 		return (false);
 	add_bits(malloc_struct.smallarenalist, PREVINUSE | ISTOPCHUNK);
-	malloc_struct.topchunk_smallarena = ptr_offset(malloc_struct.smallarenalist, sizeof(struct s_arena));
+	malloc_struct.topchunk_smallarena = (struct s_any_chunk*)malloc_struct.smallarenalist;
 
 	// Each bin is a looping list where bin[0] is the next elem and bin[1] is the prev elem
 	// then bin[2] is the next elem and bin[3] is the prev
 	struct s_binlist *init_bin;
-	for (unsigned int i = 0; i < NB_SMALLBINS + NB_TINYBINS; i++) {
+	for (int i = 0; i < NB_SMALLBINS + NB_TINYBINS; i++) {
 
-		init_bin = (struct s_binlist*)&malloc_struct.smallbin[(i << 1) - 2];
+		init_bin = (struct s_binlist*)(&(malloc_struct.smallbin[(i << 1) - 2]));
 		init_bin->next = init_bin;
 		init_bin->prev = init_bin;
 	}
