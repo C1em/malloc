@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/15 22:41:18 by coremart          #+#    #+#             */
-/*   Updated: 2021/06/26 03:40:48 by coremart         ###   ########.fr       */
+/*   Updated: 2021/06/28 00:18:09 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,8 +30,8 @@ void				add_fastbin(struct s_alloc_chunk *chunk) {
 
 void			add_tinybin(struct s_binlist *chunk) {
 
-	int index = (((int)get_chunk_size(chunk) >> 5) << 1) - 4; // (size - 32) / 16 - 2
-	struct s_binlist *tinybin = (struct s_binlist*)&malloc_struct.tinybin[index];
+	int index = (((int)get_chunk_size(chunk) >> 5) << 1) - 2; // (size - 32) / 16
+	struct s_binlist *tinybin = (struct s_binlist*)&malloc_struct.tinybin[index - 2];
 
 	chunk->prev = tinybin->prev;
 	chunk->next = tinybin;

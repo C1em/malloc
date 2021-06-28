@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:27:04 by coremart          #+#    #+#             */
-/*   Updated: 2021/06/26 00:00:35 by coremart         ###   ########.fr       */
+/*   Updated: 2021/06/27 00:50:27 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,8 +25,8 @@
 # define NEXT_8MULT(x)			((7 + x) & ~7)
 # define NEXT_PAGEALIGN(x)		((PAGE_SZ - 1 + x) & ~(PAGE_SZ - 1))
 
-# define TINY_ARENA_SZ			NEXT_PAGEALIGN((TINY_THRESHOLD + HEADER_SIZE) * 100)
-# define SMALL_ARENA_SZ			NEXT_PAGEALIGN((SMALL_THRESHOLD + HEADER_SIZE) * 100)
+# define TINY_ARENA_SZ			NEXT_PAGEALIGN(TINY_THRESHOLD * 100)
+# define SMALL_ARENA_SZ			NEXT_PAGEALIGN(SMALL_THRESHOLD * 100)
 
 # define PREVINUSE				0x1
 # define ISTOPCHUNK				0x2 // the top chunk of an arena
@@ -130,7 +130,6 @@ struct s_arena {
 	struct s_arena*		prev;
 };
 
-//TODO: optimize size
 struct s_malloc_struct {
 
 	// smallbin and tinybin are guaranteed to be coalesced

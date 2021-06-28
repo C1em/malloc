@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:27:57 by coremart          #+#    #+#             */
-/*   Updated: 2021/06/26 03:43:12 by coremart         ###   ########.fr       */
+/*   Updated: 2021/06/28 03:47:45 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,15 +16,34 @@
 #include <stdbool.h>
 #include <string.h>
 
-# define TEST_ARENA_SZ 256
+# define TEST_ARENA_SZ 2048
 
 extern __thread struct s_malloc_struct malloc_struct;
 
 bool	malloc_init(void);
 struct s_alloc_chunk	*new_tinyarena(size_t size);
+struct s_alloc_chunk	*get_from_tinytopchunk(size_t size);
+void				add_fastbin(struct s_alloc_chunk *chunk);
+struct s_alloc_chunk	*check_tinybin(size_t size);
 
-struct s_binlist *generate_chunk(size_t size_n_bits,
-	struct s_binlist *next, struct s_binlist *prev) {
+static inline struct s_alloc_chunk	*check_fastbin(size_t size) {
+
+	if (size > FASTBIN_MAX)
+		return (NULL);
+
+	int index = (int)(size >> 4) - 2; // (size - 32) / 16
+	struct s_fastbinlist *ret = malloc_struct.fastbin[index];
+	if (ret == NULL)
+		return (NULL);
+	malloc_struct.fastbin[index] = malloc_struct.fastbin[index]->next;
+
+	return ((struct s_alloc_chunk*)ret);
+}
+
+struct s_binlist *generate_chunk(
+	size_t size_n_bits,
+	bool is_alloc
+	) {
 
 	static char	chunk_addr[TEST_ARENA_SZ] = { (char)0 };
 	static struct s_binlist	*current_addr = (struct s_binlist*)chunk_addr;
@@ -41,12 +60,24 @@ struct s_binlist *generate_chunk(size_t size_n_bits,
 		exit(1);
 	}
 
-	current_addr->size_n_bits = size_n_bits;
-	current_addr->next = next;
-	current_addr->prev = prev;
+	if (is_alloc) {
+
+		rm_bits(current_addr, BITS);
+
+		set_alloc_chunk_size(current_addr, size_n_bits);
+	}
+	// free
+	else {
+
+		rm_bits(current_addr, BITS);
+		add_bits(current_addr, size_n_bits & BITS);
+
+		set_freed_chunk_size(current_addr, size_n_bits & CHUNK_SIZE);
+	}
+
 	ret = current_addr;
-	current_addr = (struct s_binlist*)((char*)chunk_addr + (size_n_bits & CHUNK_SIZE));
-	current_addr->prevsize = size_n_bits & CHUNK_SIZE;
+	current_addr = (struct s_binlist*)get_next_chunk(current_addr);
+
 	return (ret);
 }
 
@@ -273,9 +304,167 @@ void	test_new_tinyarena(void) {
 
 }
 
+void	test_get_from_tinytopchunk(void) {
+
+	struct s_any_chunk* last_top_chunk = malloc_struct.topchunk_tinyarena;
+	get_from_tinytopchunk(32);
+
+	if ((void*)malloc_struct.topchunk_tinyarena != (void*)((char*)last_top_chunk + 32))
+		printf("malloc_struct.topchunk_tinyarena != (char*)last_top_chunk + 32\n");
+
+	if (last_top_chunk->size_n_bits != (32 | PREVINUSE))
+		printf("last_top_chunk->size_n_bits != (32 | PREVINUSE)\n");
+
+	if (get_next_chunk(last_top_chunk) != (void*)malloc_struct.topchunk_tinyarena)
+		printf("get_next_chunk(last_top_chunk) != (void*)malloc_struct.topchunk_tinyarena\n");
+
+	if (get_next_chunk(last_top_chunk)->size_n_bits != (PREVINUSE | ISTOPCHUNK))
+		printf("get_next_chunk(last_top_chunk)->size_n_bits != (PREVINUSE | ISTOPCHUNK)\n");
+}
+
+void	test_check_fastbin(void) {
+
+	struct s_alloc_chunk* chunk = (struct s_alloc_chunk*)generate_chunk(32 | PREVINUSE, true);
+	add_fastbin(chunk);
+
+	struct s_alloc_chunk* ret = check_fastbin(32);
+
+	if (ret != chunk)
+		printf("ret != chunk\n");
+
+	if (malloc_struct.fastbin[0] != NULL)
+		printf("malloc_struct.fastbin[0] != NULL\n");
+
+	if (ret->size_n_bits != (32 | PREVINUSE))
+		printf("ret->size_n_bits != (32 | PREVINUSE)\n");
+
+	ret = check_fastbin(32);
+
+	if (ret != NULL)
+		printf("ret != NULL\n");
+
+	chunk = (struct s_alloc_chunk*)generate_chunk(272 | PREVINUSE, true);
+	add_fastbin(chunk);
+
+
+	if (malloc_struct.fastbin[15] == NULL)
+		printf("malloc_struct.fastbin[15] == NULL\n");
+
+	ret = check_fastbin(272);
+
+	if (ret != chunk)
+		printf("ret != chunk\n");
+
+	if (malloc_struct.fastbin[15] != NULL)
+		printf("malloc_struct.fastbin[15] != NULL\n");
+
+	if (ret->size_n_bits != (272 | PREVINUSE))
+		printf("ret->size_n_bits != (272 | PREVINUSE)\n");
+
+}
+void	reinit_bins(void) {
+
+	struct s_binlist* bin;
+	for (int i = 0; i < NB_TINYBINS; i++) {
+
+		bin = (struct s_binlist*)&malloc_struct.tinybin[(i << 1) - 2];
+		while (bin->next != bin)
+			unlink_chunk(bin->prev);
+	}
+
+	for (int i = 0; i < NB_SMALLBINS; i++) {
+
+		bin = (struct s_binlist*)(&(malloc_struct.smallbin[(i << 1) - 2]));
+		while (bin->next != bin)
+			unlink_chunk(bin->prev);
+	}
+
+	bzero(malloc_struct.fastbin, (FASTBIN_MAX >> 4) - 1);
+}
+
+void	test_check_tinybin(void) {
+
+	reinit_bins();
+	struct s_binlist* chunk = generate_chunk(32 | PREVINUSE, true);
+	add_tinybin(chunk);
+
+	struct s_alloc_chunk* ret = check_tinybin(32);
+
+	if (ret != (struct s_alloc_chunk*)chunk)
+		printf("ret != chunk\n");
+
+	if ((void*)malloc_struct.tinybin[0] != (void*)&malloc_struct.tinybin[-2])
+		printf("malloc_struct.tinybin[0] != &malloc_struct.tinybin[-2]\n");
+
+	if ((void*)malloc_struct.tinybin[1] != (void*)&malloc_struct.tinybin[-2])
+		printf("malloc_struct.tinybin[1] != &malloc_struct.tinybin[-2]\n");
+
+	if (ret->size_n_bits != (32 | PREVINUSE))
+		printf("ret->size_n_bits != (32 | PREVINUSE)\n");
+
+	ret = check_tinybin(32);
+
+	if (ret != NULL)
+		printf("2ret != NULL\n");
+
+	chunk = generate_chunk(272 | PREVINUSE, true);
+	add_tinybin(chunk);
+
+
+	if ((void*)malloc_struct.tinybin[14] == (void*)&malloc_struct.tinybin[12])
+		printf("malloc_struct.tinybin[14] == &malloc_struct.tinybin[12]\n");
+
+	if ((void*)malloc_struct.tinybin[15] == (void*)&malloc_struct.tinybin[12])
+		printf("malloc_struct.tinybin[15] == &malloc_struct.tinybin[12]\n");
+
+	ret = check_tinybin(272);
+
+	if (ret != (struct s_alloc_chunk*)chunk)
+		printf("ret != chunk\n");
+
+	if ((void*)malloc_struct.tinybin[14] != (void*)&malloc_struct.tinybin[12])
+		printf("malloc_struct.tinybin[14] != &malloc_struct.tinybin[12]\n");
+
+	if ((void*)malloc_struct.tinybin[15] != (void*)&malloc_struct.tinybin[12])
+		printf("malloc_struct.tinybin[15] != &malloc_struct.tinybin[12]\n");
+
+	if (ret->size_n_bits != (272 | PREVINUSE))
+		printf("ret->size_n_bits != (272 | PREVINUSE)\n");
+
+
+	chunk = generate_chunk(112 | PREVINUSE, true);
+	add_tinybin(chunk);
+	struct s_binlist* chunk2 = generate_chunk(112 | PREVINUSE, true);
+	add_tinybin(chunk2);
+	struct s_binlist* chunk3 = generate_chunk(112 | PREVINUSE, true);
+	add_tinybin(chunk3);
+	struct s_binlist* chunk4 = generate_chunk(112 | PREVINUSE, true);
+	add_tinybin(chunk4);
+
+	ret = check_tinybin(112);
+	ret = check_tinybin(112);
+	ret = check_tinybin(112);
+	if ((void*)malloc_struct.tinybin[4] != (void*)chunk)
+		printf("malloc_struct.tinybin[4] != chunk\n");
+
+	if ((void*)malloc_struct.tinybin[5] != (void*)chunk)
+		printf("malloc_struct.tinybin[5] != chunk\n");
+
+	ret = check_tinybin(112);
+	if ((void*)malloc_struct.tinybin[4] != (void*)&malloc_struct.tinybin[2])
+		printf("malloc_struct.tinybin[4] != &malloc_struct.tinybin[2]\n");
+
+	if ((void*)malloc_struct.tinybin[5] != (void*)&malloc_struct.tinybin[2])
+		printf("malloc_struct.tinybin[5] != &malloc_struct.tinybin[2]\n");
+
+}
+
 int		main(void) {
 	test_malloc_init();
 	test_new_tinyarena();
+	test_get_from_tinytopchunk();
+	test_check_fastbin();
+	test_check_tinybin();
 	// struct s_binlist* tmp = generate_chunk(32, NULL, NULL);
 	// struct s_binlist* tmp2 = generate_chunk(32, NULL, tmp);
 	// tmp->next = tmp2;
