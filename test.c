@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:27:57 by coremart          #+#    #+#             */
-/*   Updated: 2021/06/28 03:47:45 by coremart         ###   ########.fr       */
+/*   Updated: 2021/07/01 03:27:52 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,8 +23,9 @@ extern __thread struct s_malloc_struct malloc_struct;
 bool	malloc_init(void);
 struct s_alloc_chunk	*new_tinyarena(size_t size);
 struct s_alloc_chunk	*get_from_tinytopchunk(size_t size);
-void				add_fastbin(struct s_alloc_chunk *chunk);
+void					add_fastbin(struct s_alloc_chunk *chunk);
 struct s_alloc_chunk	*check_tinybin(size_t size);
+struct s_binlist		*coalesce_tinychunk(struct s_any_chunk *chunk_ptr);
 
 static inline struct s_alloc_chunk	*check_fastbin(size_t size) {
 
@@ -459,12 +460,126 @@ void	test_check_tinybin(void) {
 
 }
 
+void	test_coalesce_tinychunk(void) {
+
+	// coalesce both prev and next chunk
+	reinit_bins();
+	struct s_binlist* prev_chunk = generate_chunk(32 | PREVINUSE, false);
+	struct s_any_chunk* to_coalesce_chunk = (struct s_any_chunk*)generate_chunk(32, true);
+	struct s_binlist* next_chunk = generate_chunk(32 | PREVINUSE, false);
+
+	add_tinybin(prev_chunk);
+	add_tinybin(next_chunk);
+	struct s_binlist* coalesced_chunk = coalesce_tinychunk(to_coalesce_chunk);
+
+	if (coalesced_chunk->size_n_bits != (96 | PREVINUSE))
+		printf("1coalesced_chunk->size_n_bits != (96 | PREVINUSE)\n");
+
+	if (get_bits(get_next_chunk(coalesced_chunk)) != 0)
+		printf("1get_bits(get_next_chunk(coalesced_chunk)) != 0\n");
+
+	if (check_tinybin(32) != NULL)
+		printf("1check_tinybin(32) != NULL\n");
+
+
+	// coalesce next chunk
+	prev_chunk = generate_chunk(48 | PREVINUSE, false);
+	to_coalesce_chunk = (struct s_any_chunk*)generate_chunk(32 | PREVINUSE, true);
+	next_chunk = generate_chunk(32 | PREVINUSE, false);
+
+	add_tinybin(next_chunk);
+	coalesced_chunk = coalesce_tinychunk(to_coalesce_chunk);
+
+	if (coalesced_chunk->size_n_bits != (64 | PREVINUSE))
+		printf("2coalesced_chunk->size_n_bits != (64 | PREVINUSE)\n");
+
+	if (get_bits(get_next_chunk(coalesced_chunk)) != 0)
+		printf("2get_bits(get_next_chunk(coalesced_chunk)) != 0\n");
+
+	if (check_tinybin(32) != NULL)
+		printf("2check_tinybin(32) != NULL\n");
+
+	if (get_prev_chunk(coalesced_chunk)->size_n_bits != (48 | PREVINUSE))
+		printf("2get_prev_chunk(coalesced_chunk)->size_n_bits != (48 | PREVINUSE)\n");
+
+	// coalesce prev chunk
+	prev_chunk = generate_chunk(48 | PREVINUSE, false);
+	to_coalesce_chunk = (struct s_any_chunk*)generate_chunk(32, true);
+	next_chunk = generate_chunk(32 | PREVINUSE, true);
+	add_bits(get_next_chunk(next_chunk), PREVINUSE);
+
+	add_tinybin(prev_chunk);
+	coalesced_chunk = coalesce_tinychunk(to_coalesce_chunk);
+
+	if (coalesced_chunk->size_n_bits != (80 | PREVINUSE))
+		printf("3coalesced_chunk->size_n_bits != (80 | PREVINUSE)\n");
+
+	if (get_next_chunk(coalesced_chunk)->size_n_bits != 32)
+		printf("3get_next_chunk(coalesced_chunk)->size_n_bits != 32\n");
+
+	if (check_tinybin(48) != NULL)
+		printf("3check_tinybin(48) != NULL\n");
+
+	// coalesce none
+	prev_chunk = generate_chunk(48 | PREVINUSE, false);
+	to_coalesce_chunk = (struct s_any_chunk*)generate_chunk(32 | PREVINUSE, true);
+	next_chunk = generate_chunk(32 | PREVINUSE, true);
+	add_bits(get_next_chunk(next_chunk), PREVINUSE);
+
+	coalesced_chunk = coalesce_tinychunk(to_coalesce_chunk);
+
+	if (coalesced_chunk->size_n_bits != (32 | PREVINUSE))
+		printf("4coalesced_chunk->size_n_bits != (32 | PREVINUSE)\n");
+
+	if (get_next_chunk(coalesced_chunk)->size_n_bits != 32)
+		printf("4get_next_chunk(coalesced_chunk)->size_n_bits != 32\n");
+
+	if (get_prev_chunk(coalesced_chunk)->size_n_bits != (48 | PREVINUSE))
+		printf("4get_prev_chunk(coalesced_chunk)->size_n_bits != (48 | PREVINUSE)\n");
+
+	// next chunk is top chunk
+	prev_chunk = generate_chunk(48 | PREVINUSE, false);
+	to_coalesce_chunk = (struct s_any_chunk*)generate_chunk(32, true);
+	next_chunk = (struct s_binlist*)get_next_chunk(to_coalesce_chunk);
+	next_chunk->size_n_bits = (HEADER_SIZE | PREVINUSE | ISTOPCHUNK);
+
+	add_tinybin(prev_chunk);
+	coalesced_chunk = coalesce_tinychunk(to_coalesce_chunk);
+
+	if (coalesced_chunk->size_n_bits != (80 | PREVINUSE))
+		printf("5coalesced_chunk->size_n_bits != (80 | PREVINUSE)\n");
+
+	if (get_next_chunk(coalesced_chunk)->size_n_bits != (HEADER_SIZE | ISTOPCHUNK))
+		printf("5get_next_chunk(coalesced_chunk)->size_n_bits != (HEADER_SIZE | ISTOPCHUNK)\n");
+
+	if (check_tinybin(48) != NULL)
+		printf("5check_tinybin(32) != NULL\n");
+
+	// next chunk is top chunk with free space
+	prev_chunk = generate_chunk(48 | PREVINUSE, false);
+	to_coalesce_chunk = (struct s_any_chunk*)generate_chunk(32, true);
+	next_chunk = generate_chunk(32 | PREVINUSE | ISTOPCHUNK, true);
+
+	add_tinybin(prev_chunk);
+	coalesced_chunk = coalesce_tinychunk(to_coalesce_chunk);
+
+	if (coalesced_chunk->size_n_bits != (96 | PREVINUSE))
+		printf("6coalesced_chunk->size_n_bits != (96 | PREVINUSE)\n");
+
+	if (get_next_chunk(coalesced_chunk)->size_n_bits != (HEADER_SIZE | ISTOPCHUNK))
+		printf("6get_next_chunk(coalesced_chunk)->size_n_bits != (HEADER_SIZE | ISTOPCHUNK)\n");
+
+	if (check_tinybin(48) != NULL)
+		printf("6check_tinybin(32) != NULL\n");
+}
+
 int		main(void) {
 	test_malloc_init();
 	test_new_tinyarena();
 	test_get_from_tinytopchunk();
 	test_check_fastbin();
 	test_check_tinybin();
+	test_coalesce_tinychunk();
 	// struct s_binlist* tmp = generate_chunk(32, NULL, NULL);
 	// struct s_binlist* tmp2 = generate_chunk(32, NULL, tmp);
 	// tmp->next = tmp2;

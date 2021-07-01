@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/04/24 12:50:29 by coremart          #+#    #+#             */
-/*   Updated: 2021/06/25 23:50:07 by coremart         ###   ########.fr       */
+/*   Updated: 2021/06/30 22:25:26 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,7 +55,7 @@ extern inline struct s_any_chunk	*get_next_chunk(void* ptr) {
 
 extern inline struct s_any_chunk	*get_prev_chunk(void* ptr) {
 
-	return ((struct s_any_chunk*)ptr_offset(ptr, -((struct s_any_chunk*)ptr)->prevsize));
+	return ((struct s_any_chunk*)ptr_offset(ptr, -(long)((struct s_any_chunk*)ptr)->prevsize));
 }
 
 /*

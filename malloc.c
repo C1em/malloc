@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:26:54 by coremart          #+#    #+#             */
-/*   Updated: 2021/06/28 00:06:18 by coremart         ###   ########.fr       */
+/*   Updated: 2021/06/30 22:04:55 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -90,6 +90,7 @@ struct s_alloc_chunk	*coalesce_fastbin(size_t size) {
 		ret = malloc_struct.fastbin[i];
 		while (ret != NULL) {
 
+			// TODO: unlink ret from fastbin (check ret= ret->next)
 			ret = (struct s_fastbinlist*)coalesce_tinychunk((struct s_any_chunk*)ret);
 			// If the coalesced chunk is large enough
 			if (get_chunk_size(ret) >= size) {
@@ -98,6 +99,7 @@ struct s_alloc_chunk	*coalesce_fastbin(size_t size) {
 				// TODO: split_chunk_for_size()
 				return ((struct s_alloc_chunk*)ret);
 			}
+			// TODO: Add ret to tinybin
 			ret = ret->next;
 		}
 	}

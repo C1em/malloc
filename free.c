@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/15 22:41:18 by coremart          #+#    #+#             */
-/*   Updated: 2021/06/28 00:18:09 by coremart         ###   ########.fr       */
+/*   Updated: 2021/07/01 03:16:14 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -120,7 +120,12 @@ struct s_binlist	*coalesce_tinychunk(struct s_any_chunk *chunk_ptr) {
 	// if there is lost space at the end of the arena
 	else if (get_chunk_size(next_chunk) > HEADER_SIZE) {
 
-		new_sz += get_chunk_size(next_chunk) - HEADER_SIZE;
+		size_t lost_space = get_chunk_size(next_chunk) - HEADER_SIZE;
+
+		new_sz += lost_space;
+
+		struct s_any_chunk* new_top_chunk = ((struct s_any_chunk*)ptr_offset(next_chunk, lost_space));
+		*new_top_chunk = (struct s_any_chunk){.size_n_bits = (HEADER_SIZE | ISTOPCHUNK)};
 	}
 
 	if (!(get_bits(chunk_ptr) & PREVINUSE)) {
@@ -144,12 +149,14 @@ void				do_small(struct s_binlist *chunk) {
 
 	chunk = coalesce_smallchunk(chunk);
 	// split_chunk()
+	// add_smallbin
 }
 
 void				do_tiny(struct s_binlist *chunk) {
 
 	chunk = coalesce_tinychunk((struct s_any_chunk*)chunk);
 	// split_chunk()
+	// add_tinybin
 }
 
 void				free(void *ptr) {
