@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:26:54 by coremart          #+#    #+#             */
-/*   Updated: 2021/06/30 22:04:55 by coremart         ###   ########.fr       */
+/*   Updated: 2021/07/02 02:07:56 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -90,17 +90,17 @@ struct s_alloc_chunk	*coalesce_fastbin(size_t size) {
 		ret = malloc_struct.fastbin[i];
 		while (ret != NULL) {
 
-			// TODO: unlink ret from fastbin (check ret= ret->next)
-			ret = (struct s_fastbinlist*)coalesce_tinychunk((struct s_any_chunk*)ret);
-			// If the coalesced chunk is large enough
-			if (get_chunk_size(ret) >= size) {
+			// Unlink ret from fastbin
+			malloc_struct.fastbin[i] = ret->next;
 
-				malloc_struct.fastbin[i] = ret->next;
-				// TODO: split_chunk_for_size()
-				return ((struct s_alloc_chunk*)ret);
-			}
-			// TODO: Add ret to tinybin
-			ret = ret->next;
+			ret = (struct s_fastbinlist*)coalesce_tinychunk((struct s_any_chunk*)ret);
+
+			// If the coalesced chunk is large enough
+			if (get_chunk_size(ret) >= size)
+				return ((struct s_alloc_chunk*)split_tinychunk_for_size((struct s_any_chunk*)ret, size));
+
+			add_tinybin((struct s_binlist*)ret);
+			ret = malloc_struct.fastbin[i];
 		}
 	}
 	return (NULL);
@@ -197,7 +197,7 @@ bool		malloc_init(void) {
 
 	malloc_struct.tinyarenalist =  mmap(
 		NULL,
-		TINY_ARENA_SZ,
+		TINY_ARENA_SZ + SMALL_ARENA_SZ,
 		PROT_READ | PROT_WRITE,
 		MAP_ANON | MAP_PRIVATE,
 		-1,
@@ -209,14 +209,7 @@ bool		malloc_init(void) {
 	add_bits(malloc_struct.tinyarenalist, PREVINUSE | ISTOPCHUNK);
 	malloc_struct.topchunk_tinyarena = (struct s_any_chunk*)malloc_struct.tinyarenalist;
 
-	malloc_struct.smallarenalist =  mmap(
-		NULL,
-		SMALL_ARENA_SZ,
-		PROT_READ| PROT_WRITE,
-		MAP_ANON | MAP_PRIVATE,
-		-1,
-		0
-	);
+	malloc_struct.smallarenalist = ptr_offset(malloc_struct.tinyarenalist, TINY_ARENA_SZ);
 
 	if (malloc_struct.smallarenalist == (void*)-1)
 		return (false);

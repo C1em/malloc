@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:27:04 by coremart          #+#    #+#             */
-/*   Updated: 2021/06/27 00:50:27 by coremart         ###   ########.fr       */
+/*   Updated: 2021/07/02 00:50:28 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,7 @@
 
 # define HEADER_SIZE			sizeof(struct s_any_chunk)
 
+# define TINY_MIN				32
 # define TINY_THRESHOLD			512
 # define SMALL_THRESHOLD		10240
 # define FASTBIN_MAX			272
@@ -170,6 +171,7 @@ void					set_alloc_chunk_size(void *ptr, size_t sz);
 void					*ptr_offset(void *ptr, long offset);
 struct s_any_chunk		*get_next_chunk(void* ptr);
 struct s_any_chunk		*get_prev_chunk(void* ptr);
+struct s_any_chunk		*split_tinychunk_for_size(struct s_any_chunk *chunk_ptr, size_t sz);
 size_t					chunk_size_from_user_size(size_t user_data);
 
 void						*malloc(size_t size);

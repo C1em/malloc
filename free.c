@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/15 22:41:18 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/01 03:16:14 by coremart         ###   ########.fr       */
+/*   Updated: 2021/07/02 02:50:48 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -59,9 +59,9 @@ void				unlink_chunk(struct s_binlist *chunk) {
 	chunk->prev->next = chunk->next;
 }
 
-/*
-* coelesce chunk forward and backward and unlink chunk from binlist
-*/
+/**
+ * coelesce chunk forward and backward and unlink chunk from binlist
+ */
 // TODO: Make the changes like coalesce_tinychunk()
 struct s_binlist	*coalesce_smallchunk(struct s_binlist *chunk_ptr) {
 
@@ -176,9 +176,9 @@ void				free(void *ptr) {
 		do_tiny((struct s_binlist*)chunk);
 	else
 		do_small((struct s_binlist*)chunk);
-	//check that ptr is in an arena
+	// check that ptr is in an arena
 	// check that next->prev = chunkptr and prev->next = chunkptr before collapsing
-	//change the previnuse and prevsize of next chunk
-	//collapse freed bin
+	// change the previnuse and prevsize of next chunk
+	// collapse freed bin
 	// change mmap_threshold
 }

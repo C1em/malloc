@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:27:57 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/01 03:27:52 by coremart         ###   ########.fr       */
+/*   Updated: 2021/07/02 03:08:21 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -64,6 +64,7 @@ struct s_binlist *generate_chunk(
 	if (is_alloc) {
 
 		rm_bits(current_addr, BITS);
+		add_bits(current_addr, size_n_bits & BITS);
 
 		set_alloc_chunk_size(current_addr, size_n_bits);
 	}
@@ -573,6 +574,92 @@ void	test_coalesce_tinychunk(void) {
 		printf("6check_tinybin(32) != NULL\n");
 }
 
+void		test_split_tinychunk_for_size() {
+
+	// just enough space to split
+	struct s_binlist*	chunk = generate_chunk(64 | PREVINUSE, false);
+
+	get_next_chunk(chunk)->size_n_bits = (ISTOPCHUNK | PREVINUSE);
+
+	struct s_any_chunk*	new_chunk = split_tinychunk_for_size((struct s_any_chunk*)chunk, 32);
+
+	if ((void*)chunk != (void*)new_chunk)
+		printf("(void*)chunk != (void*)new_chunk\n");
+
+	if (get_chunk_size(new_chunk) != 32)
+		printf("get_chunk_size(new_chunk) != 32\n");
+
+	if (get_chunk_size(get_next_chunk(new_chunk)) != 32)
+		printf("get_chunk_size(get_next_chunk(new_chunk)) != 32\n");
+
+	if (get_bits(new_chunk) != PREVINUSE)
+		printf("get_bits(new_chunk) != PREVINUSE\n");
+
+	if (get_bits(get_next_chunk(new_chunk)) != PREVINUSE)
+		printf("get_bits(get_next_chunk(new_chunk)) != PREVINUSE\n");
+
+	if (get_bits(get_next_chunk(get_next_chunk(new_chunk))) != ISTOPCHUNK)
+		printf("get_bits(get_next_chunk(get_next_chunk(new_chunk))) != ISTOPCHUNK\n");
+
+	if ((void*)check_tinybin(32) != (void*)get_next_chunk(new_chunk))
+		printf("check_tinybin(32) != get_next_chunk(new_chunk)\n");
+
+
+	// more than enough space to split
+	chunk = generate_chunk(128 | PREVINUSE, false);
+	get_next_chunk(chunk)->size_n_bits = (ISTOPCHUNK | PREVINUSE);
+
+	new_chunk = split_tinychunk_for_size((struct s_any_chunk*)chunk, 32);
+
+	if ((void*)chunk != (void*)new_chunk)
+		printf("(void*)chunk != (void*)new_chunk\n");
+
+	if (get_chunk_size(new_chunk) != 32)
+		printf("get_chunk_size(new_chunk) != 32\n");
+
+	if (get_chunk_size(get_next_chunk(new_chunk)) != 96)
+		printf("get_chunk_size(get_next_chunk(new_chunk)) != 96\n");
+
+	if (get_bits(new_chunk) != PREVINUSE)
+		printf("get_bits(new_chunk) != PREVINUSE\n");
+
+	if (get_bits(get_next_chunk(new_chunk)) != PREVINUSE)
+		printf("get_bits(get_next_chunk(new_chunk)) != PREVINUSE\n");
+
+	if (get_bits(get_next_chunk(get_next_chunk(new_chunk))) != ISTOPCHUNK)
+		printf("get_bits(get_next_chunk(get_next_chunk(new_chunk))) != ISTOPCHUNK\n");
+
+	if ((void*)check_tinybin(96) != (void*)get_next_chunk(new_chunk))
+		printf("check_tinybin(96) != get_next_chunk(new_chunk)\n");
+
+	// not enough space to split
+	chunk = generate_chunk(128 | PREVINUSE, false);
+	get_next_chunk(chunk)->size_n_bits = (ISTOPCHUNK | PREVINUSE);
+
+	new_chunk = split_tinychunk_for_size((struct s_any_chunk*)chunk, 112);
+
+	if ((void*)chunk != (void*)new_chunk)
+		printf("(void*)chunk != (void*)new_chunk\n");
+
+	if (get_chunk_size(new_chunk) != 128)
+		printf("get_chunk_size(new_chunk) != 128\n");
+
+	if (get_chunk_size(get_next_chunk(new_chunk)) != 0)
+		printf("get_chunk_size(get_next_chunk(new_chunk)) != 0\n");
+
+	if (get_bits(new_chunk) != PREVINUSE)
+		printf("get_bits(new_chunk) != PREVINUSE\n");
+
+	if (get_bits(get_next_chunk(new_chunk)) != (ISTOPCHUNK | PREVINUSE))
+		printf("get_bits(get_next_chunk(new_chunk)) != ISTOPCHUNK\n");
+
+	// try with next is alloc
+	// try with next is free
+	// try with next chunk is top chunk
+	// try the next is top chunk with lost space
+
+}
+
 int		main(void) {
 	test_malloc_init();
 	test_new_tinyarena();
@@ -580,6 +667,9 @@ int		main(void) {
 	test_check_fastbin();
 	test_check_tinybin();
 	test_coalesce_tinychunk();
+	test_split_tinychunk_for_size();
+	// test_coalesce_fastbin();
+
 	// struct s_binlist* tmp = generate_chunk(32, NULL, NULL);
 	// struct s_binlist* tmp2 = generate_chunk(32, NULL, tmp);
 	// tmp->next = tmp2;
