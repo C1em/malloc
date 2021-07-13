@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:26:54 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/02 02:07:56 by coremart         ###   ########.fr       */
+/*   Updated: 2021/07/13 03:40:41 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,7 @@
 #include <limits.h>
 
 #include <stdio.h>
+#include <stdlib.h>
 
 __thread struct s_malloc_struct malloc_struct;
 
@@ -55,11 +56,14 @@ static inline struct s_alloc_chunk	*check_fastbin(size_t size) {
 
 	if (size > FASTBIN_MAX)
 		return (NULL);
+	printf("check_fastbin\n");
 
 	int index = (int)(size >> 4) - 2; // (size - 32) / 16
 	struct s_fastbinlist *ret = malloc_struct.fastbin[index];
-	if (ret == NULL)
+
+	if (ret == NULL) // if fastbin empty
 		return (NULL);
+
 	malloc_struct.fastbin[index] = malloc_struct.fastbin[index]->next;
 
 	return ((struct s_alloc_chunk*)ret);
@@ -72,8 +76,24 @@ struct s_alloc_chunk	*check_tinybin(size_t size) {
 
 	if (ret->next == ret) // if list empty
 		return (NULL);
+	if (get_chunk_size(ret->next) < size) // if bigger too small
+		return (NULL);
+	if (get_chunk_size(ret->prev) > size) // if smaller too big
+		return (NULL);
 
-	ret = ret->prev;
+	if (get_chunk_size(ret->prev) == size)
+		ret = ret->prev;
+	else if (get_chunk_size(ret->next) == size)
+		ret = ret->next;
+	else {
+
+		printf("size: %zu\ntinybin->prev: %zu\ntinybin->next: %zu\n", size, get_chunk_size(ret->prev), get_chunk_size(ret->next));
+		write(1, "WTF malloc.c:check_tinybin\n", 27);
+		exit(1);
+	}
+
+	printf("check_tinybin\n");
+
 	unlink_chunk(ret);
 	add_bits(get_next_chunk(ret), PREVINUSE);
 
@@ -96,8 +116,13 @@ struct s_alloc_chunk	*coalesce_fastbin(size_t size) {
 			ret = (struct s_fastbinlist*)coalesce_tinychunk((struct s_any_chunk*)ret);
 
 			// If the coalesced chunk is large enough
-			if (get_chunk_size(ret) >= size)
-				return ((struct s_alloc_chunk*)split_tinychunk_for_size((struct s_any_chunk*)ret, size));
+			if (get_chunk_size(ret) >= size) {
+				printf("coalesce_fastbin\n");
+				return ((struct s_alloc_chunk*)split_tinychunk_for_size(
+					(struct s_any_chunk*)ret,
+					size
+					));
+			}
 
 			add_tinybin((struct s_binlist*)ret);
 			ret = malloc_struct.fastbin[i];
@@ -106,9 +131,19 @@ struct s_alloc_chunk	*coalesce_fastbin(size_t size) {
 	return (NULL);
 }
 
+// struct s_alloc_chunk	*check_tinyunsorted(size_t size) {
+
+// 	struct s_binlist *tinyunsorted = malloc_struct.tinybin[(NB_TINYBINS * 2) - 4];
+
+// 	if (tinyunsorted->next == tinyunsorted) // if empty
+// 		return (NULL);
+
+
+// }
 
 struct s_alloc_chunk	*get_from_tinytopchunk(size_t size) {
 
+	printf("get_from_tinytopchunk\n");
 	struct s_alloc_chunk *topchunk = (struct s_alloc_chunk*)malloc_struct.topchunk_tinyarena;
 
 	// If size is too big to fit in
@@ -178,7 +213,7 @@ void		*tiny_malloc(size_t size) {
 		check_fastbin,
 		check_tinybin,
 		coalesce_fastbin,
-		// check_unsorted,
+		// check_tinyunsorted,
 		get_from_tinytopchunk,
 		new_tinyarena
 	};
@@ -236,6 +271,7 @@ void		*malloc(size_t size) {
 		if (malloc_init() == false)
 			return (NULL);
 
+	printf("enter malloc size: %zu\n", size);
 	size_t chunk_size =  chunk_size_from_user_size(size);
 
 	if (chunk_size >= SMALL_THRESHOLD)

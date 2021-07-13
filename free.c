@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/15 22:41:18 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/02 02:50:48 by coremart         ###   ########.fr       */
+/*   Updated: 2021/07/13 04:06:13 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,28 +30,39 @@ void				add_fastbin(struct s_alloc_chunk *chunk) {
 
 void			add_tinybin(struct s_binlist *chunk) {
 
+	// if the chunk is just before the top chunk
+	if (get_next_chunk(chunk) == malloc_struct.topchunk_tinyarena) {
+
+		malloc_struct.topchunk_tinyarena = (struct s_any_chunk*)chunk;
+		chunk->size_n_bits = (ISTOPCHUNK | PREVINUSE);
+		return ;
+	}
+
 	int index = (((int)get_chunk_size(chunk) >> 5) << 1) - 2; // (size - 32) / 16
-	struct s_binlist *tinybin = (struct s_binlist*)&malloc_struct.tinybin[index - 2];
 
-	chunk->prev = tinybin->prev;
-	chunk->next = tinybin;
-	tinybin->prev->next = chunk;
-	tinybin->prev = chunk;
+	// if index above max, use last index
+	if (index >= NB_TINYBINS * 2)
+		index = (NB_TINYBINS * 2) - 2;
+
+	struct s_binlist *prev = (struct s_binlist*)&malloc_struct.tinybin[index - 2];
+	struct s_binlist *next = prev->next;
+
+
+	// if smaller or equal to smallest
+	if (prev != next && next != prev && get_chunk_size(chunk) <= get_chunk_size(prev->prev)) {
+
+		next = prev;
+		prev = prev->prev;
+	}
+
+	chunk->prev = prev;
+	chunk->next = next;
+	next->prev = chunk;
+	prev->next = chunk;
 
 	rm_bits(get_next_chunk(chunk), PREVINUSE);
 }
 
-
-// TODO: make an unsorted for tiny and small
-void			add_unsorted(struct s_binlist* chunk) {
-
-	struct s_binlist *unsotedlist = (struct s_binlist*)&malloc_struct.tinybin[-2];
-	chunk->prev = unsotedlist->prev;
-	chunk->next = unsotedlist;
-	unsotedlist->prev->next = chunk;
-	unsotedlist->prev = chunk;
-	rm_bits(get_next_chunk(chunk), PREVINUSE);
-}
 
 void				unlink_chunk(struct s_binlist *chunk) {
 
@@ -105,6 +116,7 @@ struct s_binlist	*coalesce_smallchunk(struct s_binlist *chunk_ptr) {
 */
 struct s_binlist	*coalesce_tinychunk(struct s_any_chunk *chunk_ptr) {
 
+	printf("coalesce_tinychunk\n");
 	size_t new_sz = get_chunk_size(chunk_ptr);
 
 	struct s_binlist *next_chunk = (struct s_binlist*)get_next_chunk(chunk_ptr);
@@ -121,8 +133,9 @@ struct s_binlist	*coalesce_tinychunk(struct s_any_chunk *chunk_ptr) {
 	else if (get_chunk_size(next_chunk) > HEADER_SIZE) {
 
 		size_t lost_space = get_chunk_size(next_chunk) - HEADER_SIZE;
-
 		new_sz += lost_space;
+
+		unlink_chunk((struct s_binlist*)next_chunk);
 
 		struct s_any_chunk* new_top_chunk = ((struct s_any_chunk*)ptr_offset(next_chunk, lost_space));
 		*new_top_chunk = (struct s_any_chunk){.size_n_bits = (HEADER_SIZE | ISTOPCHUNK)};
@@ -132,8 +145,8 @@ struct s_binlist	*coalesce_tinychunk(struct s_any_chunk *chunk_ptr) {
 
 		struct s_binlist *prev_chunk = (struct s_binlist*)get_prev_chunk(chunk_ptr);
 		new_sz += get_chunk_size(prev_chunk);
+		unlink_chunk(prev_chunk);
 		chunk_ptr = (struct s_any_chunk*)prev_chunk;
-		unlink_chunk((struct s_binlist*)chunk_ptr);
 	}
 
 	// previnuse is always set since it's coalesced
@@ -155,19 +168,21 @@ void				do_small(struct s_binlist *chunk) {
 void				do_tiny(struct s_binlist *chunk) {
 
 	chunk = coalesce_tinychunk((struct s_any_chunk*)chunk);
-	// split_chunk()
-	// add_tinybin
+	add_tinybin(chunk);
 }
 
 void				free(void *ptr) {
 
 	if (ptr == NULL || malloc_struct.tinybin[0] == NULL)
 		return;
+
+	printf("enter free ptr: %p\n", ptr);
+
 	// TODO: add checks:
 	// check if size is a mult of 16
 	// check if ptr is align on 16
 	// check if already free (previnuse of next)
-	struct s_alloc_chunk *chunk = (struct s_alloc_chunk*)ptr_offset(ptr, - HEADER_SIZE);
+	struct s_alloc_chunk *chunk = (struct s_alloc_chunk*)ptr_offset(ptr, - (long)HEADER_SIZE);
 	if (get_chunk_size(chunk) <= FASTBIN_MAX)
 		add_fastbin(chunk);
 	else if (get_chunk_size(chunk) >= SMALL_THRESHOLD)

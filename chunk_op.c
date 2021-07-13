@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/04/24 12:50:29 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/02 01:18:44 by coremart         ###   ########.fr       */
+/*   Updated: 2021/07/10 03:42:07 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -50,7 +50,7 @@ extern inline void			*ptr_offset(void *ptr, long offset) {
 
 extern inline struct s_any_chunk	*get_next_chunk(void* ptr) {
 
-	return ((struct s_any_chunk*)ptr_offset(ptr, get_chunk_size(ptr)));
+	return ((struct s_any_chunk*)ptr_offset(ptr, (long)get_chunk_size(ptr)));
 }
 
 extern inline struct s_any_chunk	*get_prev_chunk(void* ptr) {
@@ -69,17 +69,19 @@ extern inline struct s_any_chunk	*get_prev_chunk(void* ptr) {
 struct s_any_chunk					*split_tinychunk_for_size(struct s_any_chunk *chunk_ptr, size_t sz) {
 
 	size_t remainder_sz = get_chunk_size(chunk_ptr) - sz;
-	if (remainder_sz < TINY_MIN)
+	if (remainder_sz < TINY_MIN) {
+
+		add_bits(get_next_chunk(chunk_ptr), PREVINUSE);
 		return (chunk_ptr);
+	}
 
 	set_alloc_chunk_size(chunk_ptr, sz);
 
-	struct s_binlist*	remainder = (struct s_binlist*)get_next_chunk(chunk_ptr);
+	struct s_binlist* remainder = (struct s_binlist*)get_next_chunk(chunk_ptr);
 	rm_bits(remainder, BITS);
 	add_bits(remainder, PREVINUSE);
 	set_freed_chunk_size(remainder, remainder_sz);
 
-	remainder = coalesce_tinychunk((struct s_any_chunk*)remainder);
 	add_tinybin(remainder);
 
 	return (chunk_ptr);
