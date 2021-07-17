@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:27:57 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/12 22:59:41 by coremart         ###   ########.fr       */
+/*   Updated: 2021/07/17 03:48:44 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -121,23 +121,23 @@ void print_any_chunk(struct s_any_chunk *chunkptr) {
 
 void print_chunk(struct s_binlist *binlist)
 {
-	printf("------------------------\n");
+	printf("--------------------------------------------\n");
 	printf("prevsize:\t%zu\n", binlist->prevsize);
 	printf("size:\t\t%zu\n", binlist->size_n_bits);
 	printf("next:\t\t%p\n", binlist->next);
 	printf("prev:\t\t%p\n", binlist->prev);
-	printf("------------------------\n");
+	printf("--------------------------------------------\n");
 }
 
 void print_allocchunk(struct s_alloc_chunk *chunkptr)
 {
-	printf("------------------------\n");
+	printf("--------------------------------------------\n");
 	printf("prevsize:\t%zu\n", chunkptr->prevsize);
 	printf("size:\t\t%zu\n", chunkptr->size_n_bits & CHUNK_SIZE);
 	printf("previnuse:\t%zu\n\n\n", chunkptr->size_n_bits & PREVINUSE);
 	struct s_alloc_chunk	*nextchunk = (struct s_alloc_chunk*)((char*)chunkptr + (chunkptr->size_n_bits & CHUNK_SIZE));
 	printf("previnuse:\t%zu\n\n\n", nextchunk->size_n_bits & PREVINUSE);
-	printf("------------------------\n");
+	printf("--------------------------------------------\n");
 }
 
 void	print_tinyarenas(struct s_arena *tinyarenalist) {
@@ -145,22 +145,35 @@ void	print_tinyarenas(struct s_arena *tinyarenalist) {
 	// stop condition
 	if (tinyarenalist == NULL)
 		return;
+
 	// recursion
 	print_tinyarenas(tinyarenalist->prev);
 
 	// actual print
 	struct s_any_chunk	*cur_chunk = (struct s_any_chunk*)tinyarenalist;
 
-	printf("NEW ARENA : %p\n\n", tinyarenalist);
-	while ((void*)cur_chunk != (void*)malloc_struct.topchunk_tinyarena) {
+	printf("\nNEW ARENA : %p\n", tinyarenalist);
+
+	void*	last_chunk;
+	if (tinyarenalist == malloc_struct.tinyarenalist)
+		last_chunk = (void*)malloc_struct.topchunk_tinyarena;
+	else
+		last_chunk = (void*)ptr_offset(tinyarenalist, (long)TINY_ARENA_SZ - (long)HEADER_SIZE);
+
+
+	while ((void*)cur_chunk < last_chunk) {
 
 		print_any_chunk(cur_chunk);
+		if (get_chunk_size(cur_chunk) == 0)
+			exit(1);
 		cur_chunk = get_next_chunk(cur_chunk);
 	}
-	print_any_chunk(cur_chunk);
+
+	if (cur_chunk == last_chunk)
+		print_any_chunk(cur_chunk);
 }
 
-void random_test() {
+void ez_random_test() {
 
 	char	*arr[512];
 	int		size_arr[512];
@@ -192,6 +205,58 @@ void random_test() {
 	}
 }
 
+struct	s_alloc
+{
+	void*			ptr;
+	struct s_alloc	*next;
+};
+
+
+void hard_random_test() {
+
+	char	*arr[1024];
+	size_t	arr_sz = 0;
+	size_t	cur_sz;
+
+	for (int i = 0; i < 1024; i++) {
+
+		if (arc4random() % 2) {
+
+			cur_sz = arc4random() % 488;
+			arr[arr_sz] = (char*)malloc(cur_sz);
+
+			// fill allocated mem with 0xff
+			for (int j = 0; j < cur_sz; j++)
+				arr[arr_sz][j] = -1;
+
+			arr_sz++;
+
+			printf("array size: %zu\n", arr_sz);
+			print_tinyarenas(malloc_struct.tinyarenalist);
+			printf("END PRINT ARENA\n\n");
+		}
+		// if something to free
+		else if (arr_sz > 0 && arc4random() % 2) {
+
+			size_t rd_idx = arc4random() % arr_sz;
+			free(arr[rd_idx]);
+
+			arr[rd_idx] = arr[arr_sz - 1];
+			arr_sz--;
+
+			print_tinyarenas(malloc_struct.tinyarenalist);
+			printf("END PRINT ARENA\n\n");
+		}
+	}
+	for (int i = 0; i < arr_sz; i++) {
+
+		free(arr[i]);
+		print_tinyarenas(malloc_struct.tinyarenalist);
+		printf("END PRINT ARENA\n\n");
+	}
+
+}
+
 void test1() {
 
 	void* chunk1 = malloc(364);
@@ -199,6 +264,7 @@ void test1() {
 	free(chunk1);
 	(void)malloc(381);
 	print_tinyarenas(malloc_struct.tinyarenalist);
+	printf("END PRINT ARENA\n\n");
 }
 
 void		test_malloc_init(void) {
@@ -860,15 +926,8 @@ int		main(void) {
 	// test_split_tinychunk_for_size();
 	// test_coalesce_fastbin();
 
-	random_test();
-	void* chunk1 = malloc(280);
-	void* chunk2 = malloc(420);
-	void* chunk3 = malloc(420);
-	free(chunk1);
-	free(chunk3);
-	print_tinyarenas(malloc_struct.tinyarenalist);
-	chunk1 = malloc(280);
-	print_tinyarenas(malloc_struct.tinyarenalist);
+	// ez_random_test();
+	hard_random_test();
 
 	// test1();
 	// struct s_binlist* tmp = generate_chunk(32, NULL, NULL);

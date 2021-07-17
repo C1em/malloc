@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/15 22:41:18 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/13 04:06:13 by coremart         ###   ########.fr       */
+/*   Updated: 2021/07/17 01:18:32 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,6 +28,18 @@ void				add_fastbin(struct s_alloc_chunk *chunk) {
 	malloc_struct.fastbin[index] = (struct s_fastbinlist*)chunk;
 }
 
+void			add_big_tinybin(struct s_binlist *chunk) {
+
+	struct s_binlist *prev = (struct s_binlist*)&malloc_struct.tinybin[(NB_TINYBINS * 2) - 2 - 2];
+
+	chunk->prev = prev;
+	chunk->next = prev->next;
+	prev->next->prev = chunk;
+	prev->next = chunk;
+
+	rm_bits(get_next_chunk(chunk), PREVINUSE);
+}
+
 void			add_tinybin(struct s_binlist *chunk) {
 
 	// if the chunk is just before the top chunk
@@ -42,14 +54,14 @@ void			add_tinybin(struct s_binlist *chunk) {
 
 	// if index above max, use last index
 	if (index >= NB_TINYBINS * 2)
-		index = (NB_TINYBINS * 2) - 2;
+		return (add_big_tinybin(chunk));
 
 	struct s_binlist *prev = (struct s_binlist*)&malloc_struct.tinybin[index - 2];
 	struct s_binlist *next = prev->next;
 
 
 	// if smaller or equal to smallest
-	if (prev != next && next != prev && get_chunk_size(chunk) <= get_chunk_size(prev->prev)) {
+	if (prev != next && get_chunk_size(chunk) <= get_chunk_size(prev->prev)) {
 
 		next = prev;
 		prev = prev->prev;
@@ -62,7 +74,6 @@ void			add_tinybin(struct s_binlist *chunk) {
 
 	rm_bits(get_next_chunk(chunk), PREVINUSE);
 }
-
 
 void				unlink_chunk(struct s_binlist *chunk) {
 
@@ -135,8 +146,6 @@ struct s_binlist	*coalesce_tinychunk(struct s_any_chunk *chunk_ptr) {
 		size_t lost_space = get_chunk_size(next_chunk) - HEADER_SIZE;
 		new_sz += lost_space;
 
-		unlink_chunk((struct s_binlist*)next_chunk);
-
 		struct s_any_chunk* new_top_chunk = ((struct s_any_chunk*)ptr_offset(next_chunk, lost_space));
 		*new_top_chunk = (struct s_any_chunk){.size_n_bits = (HEADER_SIZE | ISTOPCHUNK)};
 	}
@@ -160,7 +169,7 @@ struct s_binlist	*coalesce_tinychunk(struct s_any_chunk *chunk_ptr) {
 
 void				do_small(struct s_binlist *chunk) {
 
-	chunk = coalesce_smallchunk(chunk);
+	// chunk = coalesce_smallchunk(chunk);
 	// split_chunk()
 	// add_smallbin
 }

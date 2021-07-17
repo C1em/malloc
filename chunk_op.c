@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/04/24 12:50:29 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/10 03:42:07 by coremart         ###   ########.fr       */
+/*   Updated: 2021/07/14 00:42:38 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,11 +69,6 @@ extern inline struct s_any_chunk	*get_prev_chunk(void* ptr) {
 struct s_any_chunk					*split_tinychunk_for_size(struct s_any_chunk *chunk_ptr, size_t sz) {
 
 	size_t remainder_sz = get_chunk_size(chunk_ptr) - sz;
-	if (remainder_sz < TINY_MIN) {
-
-		add_bits(get_next_chunk(chunk_ptr), PREVINUSE);
-		return (chunk_ptr);
-	}
 
 	set_alloc_chunk_size(chunk_ptr, sz);
 

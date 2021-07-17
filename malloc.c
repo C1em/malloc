@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:26:54 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/13 03:40:41 by coremart         ###   ########.fr       */
+/*   Updated: 2021/07/17 03:44:54 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -76,26 +76,57 @@ struct s_alloc_chunk	*check_tinybin(size_t size) {
 
 	if (ret->next == ret) // if list empty
 		return (NULL);
-	if (get_chunk_size(ret->next) < size) // if bigger too small
-		return (NULL);
-	if (get_chunk_size(ret->prev) > size) // if smaller too big
-		return (NULL);
 
 	if (get_chunk_size(ret->prev) == size)
 		ret = ret->prev;
 	else if (get_chunk_size(ret->next) == size)
 		ret = ret->next;
-	else {
-
-		printf("size: %zu\ntinybin->prev: %zu\ntinybin->next: %zu\n", size, get_chunk_size(ret->prev), get_chunk_size(ret->next));
-		write(1, "WTF malloc.c:check_tinybin\n", 27);
-		exit(1);
-	}
+	else
+		return (NULL);
 
 	printf("check_tinybin\n");
 
 	unlink_chunk(ret);
 	add_bits(get_next_chunk(ret), PREVINUSE);
+
+	return ((struct s_alloc_chunk*)ret);
+}
+
+struct s_alloc_chunk	*check_big_tinybin(size_t size) {
+
+	struct s_binlist *ret = (struct s_binlist*)&malloc_struct.tinybin[(NB_TINYBINS * 2) - 2 - 2];
+
+	if (ret->prev == ret) // if list empty
+		return (NULL);
+
+	ret = ret->prev;
+
+	// If chunk is too small to be split
+	if (get_chunk_size(ret) - TINY_MIN < size)
+		return (NULL);
+
+	size_t remainder_sz = get_chunk_size(ret) - size;
+
+	set_alloc_chunk_size(ret, size);
+
+	struct s_binlist* remainder = (struct s_binlist*)get_next_chunk(ret);
+	rm_bits(remainder, BITS);
+	add_bits(remainder, PREVINUSE);
+	set_freed_chunk_size(remainder, remainder_sz);
+
+	// if small enough to be in tinybin
+	if (get_chunk_size(remainder) < TINY_THRESHOLD) {
+
+		unlink_chunk(ret);
+		add_tinybin(remainder);
+	}
+	else {
+
+		remainder->next = ret->next;
+		remainder->prev = ret->prev;
+		remainder->prev->next = remainder;
+		remainder->next->prev = remainder;
+	}
 
 	return ((struct s_alloc_chunk*)ret);
 }
@@ -115,8 +146,8 @@ struct s_alloc_chunk	*coalesce_fastbin(size_t size) {
 
 			ret = (struct s_fastbinlist*)coalesce_tinychunk((struct s_any_chunk*)ret);
 
-			// If the coalesced chunk is large enough
-			if (get_chunk_size(ret) >= size) {
+			// If the coalesced chunk is large enough to be split
+			if (get_chunk_size(ret) - TINY_MIN >= size) {
 				printf("coalesce_fastbin\n");
 				return ((struct s_alloc_chunk*)split_tinychunk_for_size(
 					(struct s_any_chunk*)ret,
@@ -130,16 +161,6 @@ struct s_alloc_chunk	*coalesce_fastbin(size_t size) {
 	}
 	return (NULL);
 }
-
-// struct s_alloc_chunk	*check_tinyunsorted(size_t size) {
-
-// 	struct s_binlist *tinyunsorted = malloc_struct.tinybin[(NB_TINYBINS * 2) - 4];
-
-// 	if (tinyunsorted->next == tinyunsorted) // if empty
-// 		return (NULL);
-
-
-// }
 
 struct s_alloc_chunk	*get_from_tinytopchunk(size_t size) {
 
@@ -161,6 +182,8 @@ struct s_alloc_chunk	*get_from_tinytopchunk(size_t size) {
 
 struct s_alloc_chunk	*new_tinyarena(size_t size) {
 
+
+	printf("new_tinyarena\n");
 	struct s_arena *new_arena = mmap(
 		NULL,
 		TINY_ARENA_SZ,
@@ -178,7 +201,7 @@ struct s_alloc_chunk	*new_tinyarena(size_t size) {
 	- (size_t)malloc_struct.topchunk_tinyarena;
 
 
-	// We can safely add the PREVINUSE bit coz we know the last chunk is not free otherwise is would be the topchunk
+	// We can safely set the PREVINUSE bit coz we know the last chunk is not free otherwise is would be the topchunk
 	malloc_struct.topchunk_tinyarena->size_n_bits = PREVINUSE;
 
 	// If the last part of the arena has enough space left to store a chunk + a footer
@@ -209,11 +232,11 @@ struct s_alloc_chunk	*new_tinyarena(size_t size) {
 
 void		*tiny_malloc(size_t size) {
 
-	struct s_alloc_chunk *(*malloc_strategy[5])(size_t) = {
+	struct s_alloc_chunk *(*malloc_strategy[6])(size_t) = {
 		check_fastbin,
 		check_tinybin,
+		check_big_tinybin,
 		coalesce_fastbin,
-		// check_tinyunsorted,
 		get_from_tinytopchunk,
 		new_tinyarena
 	};
