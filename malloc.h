@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:27:04 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/14 04:44:49 by coremart         ###   ########.fr       */
+/*   Updated: 2021/07/21 05:27:01 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,10 +42,7 @@
 + (SMALL_THRESHOLD / 5) / 1024 \
 + (SMALL_THRESHOLD / 5) / 2048 \
 + 1)
-
-
-
-// ((10240 / 10) - 512) / 64 + (10240 / 10) / 128 + (10240 / 5) / 256 + (10240 / 5) / 512 + (10240 / 5) / 1024 + (10240 / 5) / 2048 + 1
+// (10240 / 10) - 512) / 64 + (10240 / 10) / 128 + (10240 / 5) / 256 + (10240 / 5) / 512 + (10240 / 5) / 1024 + (10240 / 5) / 2048 + 1
 
 
 # define NBINS					NB_TINYBINS + NB_SMALLBINS + NB_BIGFREED
@@ -156,7 +153,6 @@ struct s_malloc_struct {
 	struct s_any_chunk		*topchunk_tinyarena; // pointer on the last chunk of tinyarenalist
 	struct s_arena			*smallarenalist;
 	struct s_any_chunk		*topchunk_smallarena; // pointer on the last chunk of tinyarenalist
-
 };
 
 /*
@@ -178,9 +174,11 @@ void						*malloc(size_t size);
 void						free(void *ptr);
 
 struct s_binlist			*coalesce_tinychunk(struct s_any_chunk *chunk_ptr);
-struct s_binlist			*coalesce_smallchunk(struct s_binlist *chunk_ptr);
+struct s_binlist			*coalesce_smallchunk(struct s_any_chunk *chunk_ptr);
 void						unlink_chunk(struct s_binlist *chunk_ptr);
 void						add_tinybin(struct s_binlist* chunk_ptr);
+int				get_smallbin_index(size_t sz);
+void			add_smallbin(struct s_binlist *chunk);
 
 
 #endif

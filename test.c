@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:27:57 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/17 03:48:44 by coremart         ###   ########.fr       */
+/*   Updated: 2021/07/21 06:01:23 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,6 +27,7 @@ void					add_fastbin(struct s_alloc_chunk *chunk);
 struct s_alloc_chunk	*check_tinybin(size_t size);
 struct s_binlist		*coalesce_tinychunk(struct s_any_chunk *chunk_ptr);
 struct s_alloc_chunk	*coalesce_fastbin(size_t size);
+int				get_smallbin_index(size_t sz);
 
 static inline struct s_alloc_chunk	*check_fastbin(size_t size) {
 
@@ -214,15 +215,15 @@ struct	s_alloc
 
 void hard_random_test() {
 
-	char	*arr[1024];
+	char	*arr[8192];
 	size_t	arr_sz = 0;
 	size_t	cur_sz;
 
-	for (int i = 0; i < 1024; i++) {
+	for (int i = 0; i < 8192; i++) {
 
 		if (arc4random() % 2) {
 
-			cur_sz = arc4random() % 488;
+			cur_sz = arc4random() % 10232;
 			arr[arr_sz] = (char*)malloc(cur_sz);
 
 			// fill allocated mem with 0xff
