@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:27:57 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/21 06:01:23 by coremart         ###   ########.fr       */
+/*   Updated: 2021/07/22 11:07:34 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,7 @@
 
 # define TEST_ARENA_SZ 4096
 
-extern __thread struct s_malloc_struct malloc_struct;
+extern struct s_malloc_struct malloc_struct;
 
 bool	malloc_init(void);
 struct s_alloc_chunk	*new_tinyarena(size_t size);

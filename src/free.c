@@ -6,16 +6,15 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/15 22:41:18 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/21 05:48:28 by coremart         ###   ########.fr       */
+/*   Updated: 2021/07/22 10:58:05 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include <sys/mman.h>
 #include "malloc.h"
-#include <stdio.h>
 #include <stdbool.h>
 
-extern __thread struct s_malloc_struct malloc_struct;
+extern struct s_malloc_struct malloc_struct;
 
 /*
 **	add to fastbin list without changing metadata
@@ -96,8 +95,11 @@ void			add_smallbin(struct s_binlist *chunk) {
 	int index = get_smallbin_index(get_chunk_size(chunk));
 
 	// if index above max, use last index
-	if (index >= NB_SMALLBINS * 2)
-		return (add_big_smallbin(chunk));
+	if (index >= NB_SMALLBINS * 2) {
+
+		add_big_smallbin(chunk);
+		return;
+	}
 
 	struct s_binlist *prev = (struct s_binlist*)&malloc_struct.smallbin[index - 2];
 	struct s_binlist *next = prev->next;
@@ -138,8 +140,10 @@ void			add_tinybin(struct s_binlist *chunk) {
 	int index = (((int)get_chunk_size(chunk) >> 5) << 1) - 2; // (size - 32) / 16
 
 	// if index above max, use last index
-	if (index >= NB_TINYBINS * 2)
-		return (add_big_tinybin(chunk));
+	if (index >= NB_TINYBINS * 2) {
+		add_big_tinybin(chunk);
+		return;
+	}
 
 	struct s_binlist *prev = (struct s_binlist*)&malloc_struct.tinybin[index - 2];
 	struct s_binlist *next = prev->next;
@@ -172,7 +176,6 @@ void				unlink_chunk(struct s_binlist *chunk) {
 */
 struct s_binlist	*coalesce_smallchunk(struct s_any_chunk *chunk_ptr) {
 
-	printf("coalesce_smallchunk\n");
 	size_t new_sz = get_chunk_size(chunk_ptr);
 
 	struct s_binlist *next_chunk = (struct s_binlist*)get_next_chunk(chunk_ptr);
@@ -218,7 +221,6 @@ struct s_binlist	*coalesce_smallchunk(struct s_any_chunk *chunk_ptr) {
 */
 struct s_binlist	*coalesce_tinychunk(struct s_any_chunk *chunk_ptr) {
 
-	printf("coalesce_tinychunk\n");
 	size_t new_sz = get_chunk_size(chunk_ptr);
 
 	struct s_binlist *next_chunk = (struct s_binlist*)get_next_chunk(chunk_ptr);
@@ -270,18 +272,93 @@ void				do_tiny(struct s_binlist *chunk) {
 	add_tinybin(chunk);
 }
 
+void	print_addr(void *addr) {
+
+	char			base[] = "0123456789abcdef";
+	char			output[19] = "0x0000000000000000";
+	int				i = 17;
+	unsigned long	ul_addr = (unsigned long)addr;
+
+	while (ul_addr > 0) {
+
+		output[i] = base[ul_addr % 16];
+		ul_addr /= 16;
+		i--;
+	}
+
+	write(1, output, 18);
+}
+
+bool				is_in_arena(struct s_alloc_chunk *chunk) {
+
+	if ((void*)chunk >= (void*)malloc_struct.tinyarenalist && (void*)chunk <= ptr_offset(malloc_struct.topchunk_tinyarena, - TINY_MIN))
+		return (true);
+
+	struct s_arena	*cur_arena = malloc_struct.tinyarenalist->prev;
+
+	while (cur_arena != NULL) {
+
+		if ((void*)chunk >= (void*)cur_arena
+		&& (void*)chunk <= ptr_offset(cur_arena, TINY_ARENA_SZ - TINY_MIN - (long)HEADER_SIZE))
+			return (true);
+
+		cur_arena = cur_arena->prev;
+	}
+
+	if ((void*)chunk >= (void*)malloc_struct.smallarenalist && (void*)chunk <= ptr_offset(malloc_struct.topchunk_smallarena, - TINY_MIN))
+		return (true);
+
+
+	cur_arena = malloc_struct.smallarenalist->prev;
+
+	while (cur_arena != NULL) {
+
+		if ((void*)chunk >= (void*)cur_arena
+		&& (void*)chunk <= ptr_offset(cur_arena, SMALL_ARENA_SZ - TINY_THRESHOLD - (long)HEADER_SIZE))
+			return (true);
+
+		cur_arena = cur_arena->prev;
+	}
+
+	write(1, "NOT IN ARENA\n", 13);
+	return (false);
+}
+
+bool				is_valid_chunk(struct s_alloc_chunk *chunk) {
+
+	if (is_in_arena(chunk)) {
+
+		if (get_chunk_size(chunk) < SMALL_THRESHOLD
+		&& get_chunk_size(chunk) % 16 == 0
+		&& (get_bits(get_next_chunk(chunk)) & PREVINUSE) == PREVINUSE)
+			return (true);
+	}
+	// can be a large chunk
+	else if ((size_t)chunk % PAGE_SZ == 0) {
+
+		if (chunk->size_n_bits >= SMALL_THRESHOLD && chunk->size_n_bits % PAGE_SZ == 0)
+			return (true);
+	}
+
+	write(1, "INVALID CHUNK\n", 14);
+	return (false);
+}
+
 void				free(void *ptr) {
 
-	if (ptr == NULL || malloc_struct.tinybin[0] == NULL)
+	write(1, "free(", 5);
+	print_addr(ptr);
+	write(1, ")\n", 2);
+
+	// if null or ptr is not aligned or malloc not initialized
+	if (ptr == NULL || (size_t)ptr % 16 != 0 || malloc_struct.tinybin[0] == NULL)
 		return;
 
-	printf("enter free ptr: %p\n", ptr);
-
-	// TODO: add checks:
-	// check if size is a mult of 16
-	// check if ptr is align on 16
-	// check if already free (previnuse of next)
 	struct s_alloc_chunk *chunk = (struct s_alloc_chunk*)ptr_offset(ptr, - (long)HEADER_SIZE);
+
+	if (!is_valid_chunk(chunk))
+		return;
+
 	if (get_chunk_size(chunk) <= FASTBIN_MAX)
 		add_fastbin(chunk);
 	else if (get_chunk_size(chunk) >= SMALL_THRESHOLD)

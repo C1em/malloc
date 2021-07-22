@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:26:54 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/21 05:26:26 by coremart         ###   ########.fr       */
+/*   Updated: 2021/07/22 12:21:16 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,11 +14,11 @@
 #include "malloc.h"
 #include <stdbool.h>
 #include <limits.h>
+#include <unistd.h>
 
-#include <stdio.h>
 #include <stdlib.h>
 
-__thread struct s_malloc_struct malloc_struct;
+struct s_malloc_struct malloc_struct;
 
 void		*large_malloc(size_t size) {
 
@@ -33,6 +33,7 @@ void		*large_malloc(size_t size) {
 
 	if (alloc == (void*)-1)
 		return (NULL);
+
 	((struct s_alloc_chunk*)alloc)->size_n_bits = NEXT_PAGEALIGN(size);
 	return ((void*)((char*)alloc + HEADER_SIZE));
 }
@@ -40,7 +41,6 @@ void		*large_malloc(size_t size) {
 struct s_alloc_chunk	*new_smallarena(size_t size) {
 
 
-	printf("new_smallarena\n");
 	struct s_arena *new_arena = mmap(
 		NULL,
 		SMALL_ARENA_SZ,
@@ -90,7 +90,6 @@ struct s_alloc_chunk	*new_smallarena(size_t size) {
 
 struct s_alloc_chunk	*get_from_smalltopchunk(size_t size) {
 
-	printf("get_from_smalltopchunk\n");
 	struct s_alloc_chunk *topchunk = (struct s_alloc_chunk*)malloc_struct.topchunk_smallarena;
 
 	// If size is too big to fit in
@@ -169,8 +168,6 @@ struct s_alloc_chunk	*check_smallbin(size_t size) {
 			ret = ret->next;
 	}
 
-	printf("check_smallbin\n");
-
 	unlink_chunk(ret);
 	add_bits(get_next_chunk(ret), PREVINUSE);
 
@@ -187,7 +184,7 @@ void		*small_malloc(const size_t size) {
 	};
 
 	struct s_alloc_chunk *ret = NULL;
-	for (int i = 0; i < sizeof(malloc_strategy) / sizeof(malloc_strategy[0]); i++) {
+	for (unsigned int i = 0; i < sizeof(malloc_strategy) / sizeof(malloc_strategy[0]); i++) {
 
 		ret = malloc_strategy[i](size);
 		if (ret != NULL)
@@ -201,7 +198,6 @@ static inline struct s_alloc_chunk	*check_fastbin(size_t size) {
 
 	if (size > FASTBIN_MAX)
 		return (NULL);
-	printf("check_fastbin\n");
 
 	int index = (int)(size >> 4) - 2; // (size - 32) / 16
 	struct s_fastbinlist *ret = malloc_struct.fastbin[index];
@@ -228,8 +224,6 @@ struct s_alloc_chunk	*check_tinybin(size_t size) {
 		ret = ret->next;
 	else
 		return (NULL);
-
-	printf("check_tinybin\n");
 
 	unlink_chunk(ret);
 	add_bits(get_next_chunk(ret), PREVINUSE);
@@ -295,7 +289,7 @@ struct s_alloc_chunk	*coalesce_fastbin(size_t size) {
 
 			// If the coalesced chunk is large enough to be split
 			if (get_chunk_size(ret) - TINY_MIN >= size) {
-				printf("coalesce_fastbin\n");
+
 				return ((struct s_alloc_chunk*)split_tinychunk_for_size(
 					(struct s_any_chunk*)ret,
 					size
@@ -311,7 +305,6 @@ struct s_alloc_chunk	*coalesce_fastbin(size_t size) {
 
 struct s_alloc_chunk	*get_from_tinytopchunk(size_t size) {
 
-	printf("get_from_tinytopchunk\n");
 	struct s_alloc_chunk *topchunk = (struct s_alloc_chunk*)malloc_struct.topchunk_tinyarena;
 
 	// If size is too big to fit in
@@ -329,8 +322,6 @@ struct s_alloc_chunk	*get_from_tinytopchunk(size_t size) {
 
 struct s_alloc_chunk	*new_tinyarena(size_t size) {
 
-
-	printf("new_tinyarena\n");
 	struct s_arena *new_arena = mmap(
 		NULL,
 		TINY_ARENA_SZ,
@@ -389,7 +380,7 @@ void		*tiny_malloc(size_t size) {
 	};
 
 	struct s_alloc_chunk *ret = NULL;
-	for (int i = 0; i < sizeof(malloc_strategy) / sizeof(malloc_strategy[0]); i++) {
+	for (unsigned int i = 0; i < sizeof(malloc_strategy) / sizeof(malloc_strategy[0]); i++) {
 
 		ret = malloc_strategy[i](size);
 		if (ret != NULL)
@@ -433,20 +424,46 @@ bool		malloc_init(void) {
 	return (true);
 }
 
+void		print_size(size_t sz) {
+
+	char	output[21] = "00000000000000000000";
+	int		i = 19;
+
+	while (sz > 0) {
+
+		output[i] += (sz % 10);
+		sz /= 10;
+		i--;
+	}
+
+	write(1, &output[i + 1], 19 - i);
+}
+
+void	print_addr(void *addr);
+
 void		*malloc(size_t size) {
 
-	if (size >= ULONG_MAX - getpagesize() - HEADER_SIZE || size == 0)
+	write(1, "malloc(", 7);
+	print_size(size);
+	write(1, "):\t", 3);
+
+	if (size >= ULONG_MAX - PAGE_SZ - HEADER_SIZE)
 		return (NULL);
 	if (malloc_struct.tinybin[0] == NULL)
 		if (malloc_init() == false)
 			return (NULL);
 
-	printf("enter malloc size: %zu\n", size);
 	size_t chunk_size =  chunk_size_from_user_size(size);
 
+	void	*res = NULL;
 	if (chunk_size >= SMALL_THRESHOLD)
-		return (large_malloc(chunk_size));
-	if (chunk_size >= TINY_THRESHOLD)
-		return (small_malloc(chunk_size));
-	return (tiny_malloc(chunk_size));
+		res = large_malloc(chunk_size);
+	else if (chunk_size >= TINY_THRESHOLD)
+		res = small_malloc(chunk_size);
+	else
+		res = tiny_malloc(chunk_size);
+
+	print_addr(res);
+	write(1, "\n", 1);
+	return (res);
 }
