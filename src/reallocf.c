@@ -1,23 +1,23 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   realloc.c                                          :+:      :+:    :+:   */
+/*   reallocf.c                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2021/07/22 12:08:30 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/22 13:41:07 by coremart         ###   ########.fr       */
+/*   Created: 2021/07/23 12:25:13 by coremart          #+#    #+#             */
+/*   Updated: 2021/07/23 14:57:42 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "malloc.h"
 
-void		*realloc(void *ptr, size_t size) {
+void*	reallocf(void *ptr, size_t size) {
 
-	// realloc(NULL) is equivalent to malloc
-	if (ptr == NULL)
-		return (malloc(size));
+	void *nptr = realloc(ptr, size);
 
-	free(ptr);
-	return (malloc(size));
+	if (!nptr && ptr)
+		free(ptr);
+
+	return (nptr);
 }

@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/15 22:41:18 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/22 10:58:05 by coremart         ###   ########.fr       */
+/*   Updated: 2021/07/22 17:24:59 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -320,7 +320,6 @@ bool				is_in_arena(struct s_alloc_chunk *chunk) {
 		cur_arena = cur_arena->prev;
 	}
 
-	write(1, "NOT IN ARENA\n", 13);
 	return (false);
 }
 
@@ -340,7 +339,6 @@ bool				is_valid_chunk(struct s_alloc_chunk *chunk) {
 			return (true);
 	}
 
-	write(1, "INVALID CHUNK\n", 14);
 	return (false);
 }
 

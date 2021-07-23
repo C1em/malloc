@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:27:04 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/22 12:11:13 by coremart         ###   ########.fr       */
+/*   Updated: 2021/07/23 12:25:46 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -173,6 +173,8 @@ size_t					chunk_size_from_user_size(size_t user_data);
 void						*malloc(size_t size);
 void						free(void *ptr);
 void						*realloc(void *ptr, size_t size);
+void		*calloc(size_t count, size_t size);
+void*	reallocf(void *ptr, size_t size);
 
 struct s_binlist			*coalesce_tinychunk(struct s_any_chunk *chunk_ptr);
 struct s_binlist			*coalesce_smallchunk(struct s_any_chunk *chunk_ptr);
