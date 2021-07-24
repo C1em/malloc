@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/07/22 17:26:01 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/23 12:30:46 by coremart         ###   ########.fr       */
+/*   Updated: 2021/07/24 11:54:04 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,7 @@ void		print_size(size_t sz);
 #define	wsize	sizeof(u_int)
 #define	wmask	(wsize - 1)
 
-void	*memset(void *dst, int c, size_t length) {
+void	*ft_memset(void *dst, int c, size_t length) {
 
 	size_t t;
 	u_int uint_c = (u_char)c;
@@ -62,7 +62,7 @@ void	*memset(void *dst, int c, size_t length) {
 		uchar_dst += wsize;
 	}
 
-	/* Mop up trailing bytes, if any. */
+	// mop up trailing bytes, if any
 	t = length & wmask;
 	while (t-- != 0)
 		*uchar_dst++ = c;
@@ -85,7 +85,7 @@ void		*calloc(size_t count, size_t size) {
 	write(1, ")\n", 2);
 
 	void* ptr = malloc(count * size);
-	ptr = memset(ptr, 0, count * size);
+	ptr = ft_memset(ptr, 0, count * size);
 
 	return (ptr);
 }
