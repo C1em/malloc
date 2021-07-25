@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:27:57 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/22 11:07:34 by coremart         ###   ########.fr       */
+/*   Updated: 2021/07/25 11:44:47 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -211,7 +211,7 @@ struct	s_alloc
 	void*			ptr;
 	struct s_alloc	*next;
 };
-
+void	*ft_memset(void *dst, int c, size_t length);
 
 void hard_random_test() {
 
@@ -227,9 +227,7 @@ void hard_random_test() {
 			arr[arr_sz] = (char*)malloc(cur_sz);
 
 			// fill allocated mem with 0xff
-			for (int j = 0; j < cur_sz; j++)
-				arr[arr_sz][j] = -1;
-
+			ft_memset(arr[arr_sz], -1, cur_sz);
 			arr_sz++;
 
 			printf("array size: %zu\n", arr_sz);
@@ -928,7 +926,16 @@ int		main(void) {
 	// test_coalesce_fastbin();
 
 	// ez_random_test();
-	hard_random_test();
+	// hard_random_test();
+	char* a = malloc(12);
+	for (int i = 0; i < 12; i++) {
+
+		a[i] = "como va ???"[i];
+	}
+	printf("%s\n", a);
+	a = realloc(a, 10);
+	a[9] = '\0';
+	printf("%s\n", a);
 
 	// test1();
 	// struct s_binlist* tmp = generate_chunk(32, NULL, NULL);

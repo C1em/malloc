@@ -6,11 +6,22 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/07/22 12:08:30 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/22 13:41:07 by coremart         ###   ########.fr       */
+/*   Updated: 2021/07/25 12:24:53 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "malloc.h"
+
+void		*ft_memcpy(void *restrict dst, const void *restrict src, size_t n) {
+
+	char *char_dst = dst;
+	char *char_src = (char*)src;
+
+	while (n-- > 0)
+		*char_dst++ = *char_src++;
+
+	return (dst);
+}
 
 void		*realloc(void *ptr, size_t size) {
 
@@ -18,6 +29,18 @@ void		*realloc(void *ptr, size_t size) {
 	if (ptr == NULL)
 		return (malloc(size));
 
+	if (size == 0) {
+
+		free(ptr);
+		return (malloc(0));
+	}
+
+	void* nptr = malloc(size);
+	if (nptr == NULL)
+		return (ptr);
+
+	nptr = ft_memcpy(nptr, ptr, size);
 	free(ptr);
-	return (malloc(size));
+
+	return (nptr);
 }
