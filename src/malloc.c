@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:26:54 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/22 17:25:10 by coremart         ###   ########.fr       */
+/*   Updated: 2021/07/25 12:29:50 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -443,10 +443,11 @@ void	print_addr(void *addr);
 
 void		*malloc(size_t size) {
 
-	write(1, "malloc(", 7);
-	print_size(size);
-	write(1, "):\t", 3);
+	// write(1, "malloc(", 7);
+	// print_size(size);
+	// write(1, "):\t", 3);
 
+	// TODO: put a max_size
 	if (size >= ULONG_MAX - PAGE_SZ - HEADER_SIZE)
 		return (NULL);
 	if (malloc_struct.tinybin[0] == NULL)
@@ -463,7 +464,7 @@ void		*malloc(size_t size) {
 	else
 		res = tiny_malloc(chunk_size);
 
-	print_addr(res);
-	write(1, "\n", 1);
+	// print_addr(res);
+	// write(1, "\n", 1);
 	return (res);
 }

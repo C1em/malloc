@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/15 22:41:18 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/22 17:24:59 by coremart         ###   ########.fr       */
+/*   Updated: 2021/07/25 12:29:43 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -344,9 +344,9 @@ bool				is_valid_chunk(struct s_alloc_chunk *chunk) {
 
 void				free(void *ptr) {
 
-	write(1, "free(", 5);
-	print_addr(ptr);
-	write(1, ")\n", 2);
+	// write(1, "free(", 5);
+	// print_addr(ptr);
+	// write(1, ")\n", 2);
 
 	// if null or ptr is not aligned or malloc not initialized
 	if (ptr == NULL || (size_t)ptr % 16 != 0 || malloc_struct.tinybin[0] == NULL)

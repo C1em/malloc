@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/07/22 17:26:01 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/24 11:54:04 by coremart         ###   ########.fr       */
+/*   Updated: 2021/07/25 12:30:22 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -78,11 +78,11 @@ void		*calloc(size_t count, size_t size) {
 		size = 1;
 	}
 
-	write(1, "calloc(", 7);
-	print_size(count);
-	write(1, ", ", 2);
-	print_size(size);
-	write(1, ")\n", 2);
+	// write(1, "calloc(", 7);
+	// print_size(count);
+	// write(1, ", ", 2);
+	// print_size(size);
+	// write(1, ")\n", 2);
 
 	void* ptr = malloc(count * size);
 	ptr = ft_memset(ptr, 0, count * size);
