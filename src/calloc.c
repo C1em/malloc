@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/07/22 17:26:01 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/25 12:30:22 by coremart         ###   ########.fr       */
+/*   Updated: 2021/07/25 16:49:56 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,7 +42,7 @@ void	*ft_memset(void *dst, int c, size_t length) {
 	uint_c = (uint_c << 16) | uint_c;
 
 	// get the offset from alignement
-	t = (int)uchar_dst & wmask;
+	t = (size_t)uchar_dst & wmask;
 
 	if (t != 0) { // if not aligned
 
