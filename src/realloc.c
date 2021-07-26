@@ -6,12 +6,13 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/07/22 12:08:30 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/26 13:08:00 by coremart         ###   ########.fr       */
+/*   Updated: 2021/07/26 14:18:37 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "malloc.h"
 
+// TODO: opti by coping 4 bytes
 void		*ft_memcpy(void *restrict dst, const void *restrict src, size_t n) {
 
 	char *char_dst = dst;
@@ -41,7 +42,9 @@ void		*realloc(void *ptr, size_t size) {
 	if (nptr == NULL)
 		return (ptr);
 
-	nptr = ft_memcpy(nptr, ptr, size);
+	// min of malloc_size(ptr) and size
+	size_t copy_size = (size <= malloc_size(ptr) ? size : malloc_size(ptr));
+	nptr = ft_memcpy(nptr, ptr, copy_size);
 	free(ptr);
 
 	return (nptr);

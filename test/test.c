@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:27:57 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/25 11:44:47 by coremart         ###   ########.fr       */
+/*   Updated: 2021/07/26 13:56:51 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -215,19 +215,19 @@ void	*ft_memset(void *dst, int c, size_t length);
 
 void hard_random_test() {
 
-	char	*arr[8192];
+	char	*arr[16384];
 	size_t	arr_sz = 0;
 	size_t	cur_sz;
 
-	for (int i = 0; i < 8192; i++) {
+	for (int i = 0; i < sizeof(arr) / sizeof(arr[0]); i++) {
 
 		if (arc4random() % 2) {
 
-			cur_sz = arc4random() % 10232;
+			cur_sz = malloc_good_size(arc4random() % 10232);
 			arr[arr_sz] = (char*)malloc(cur_sz);
 
 			// fill allocated mem with 0xff
-			ft_memset(arr[arr_sz], -1, cur_sz);
+			ft_memset(arr[arr_sz], -1, malloc_size(arr[arr_sz]));
 			arr_sz++;
 
 			printf("array size: %zu\n", arr_sz);
@@ -926,16 +926,7 @@ int		main(void) {
 	// test_coalesce_fastbin();
 
 	// ez_random_test();
-	// hard_random_test();
-	char* a = malloc(12);
-	for (int i = 0; i < 12; i++) {
-
-		a[i] = "como va ???"[i];
-	}
-	printf("%s\n", a);
-	a = realloc(a, 10);
-	a[9] = '\0';
-	printf("%s\n", a);
+	hard_random_test();
 
 	// test1();
 	// struct s_binlist* tmp = generate_chunk(32, NULL, NULL);
