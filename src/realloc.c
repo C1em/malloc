@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/07/22 12:08:30 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/25 12:24:53 by coremart         ###   ########.fr       */
+/*   Updated: 2021/07/26 13:08:00 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,6 +24,8 @@ void		*ft_memcpy(void *restrict dst, const void *restrict src, size_t n) {
 }
 
 void		*realloc(void *ptr, size_t size) {
+
+	// write(1, "realloc\n", 8);
 
 	// realloc(NULL) is equivalent to malloc
 	if (ptr == NULL)

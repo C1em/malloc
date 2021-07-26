@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/07/22 17:26:01 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/25 16:49:56 by coremart         ###   ########.fr       */
+/*   Updated: 2021/07/26 13:08:33 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,6 +22,7 @@ void		print_size(size_t sz);
 #define	wsize	sizeof(u_int)
 #define	wmask	(wsize - 1)
 
+// TODO: opti: we know that dst is aligned + c is always 0
 void	*ft_memset(void *dst, int c, size_t length) {
 
 	size_t t;
@@ -72,11 +73,8 @@ void	*ft_memset(void *dst, int c, size_t length) {
 
 void		*calloc(size_t count, size_t size) {
 
-	if (count == 0 || size == 0) {
-
-		count = 1;
-		size = 1;
-	}
+	if (count == 0 || size == 0)
+		count = size = 1;
 
 	// write(1, "calloc(", 7);
 	// print_size(count);

@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:26:54 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/25 12:29:50 by coremart         ###   ########.fr       */
+/*   Updated: 2021/07/26 13:08:22 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,7 +15,7 @@
 #include <stdbool.h>
 #include <limits.h>
 #include <unistd.h>
-
+#include <malloc/malloc.h>
 #include <stdlib.h>
 
 struct s_malloc_struct malloc_struct;
