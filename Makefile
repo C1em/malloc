@@ -6,14 +6,15 @@
 #    By: coremart <coremart@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2021/07/21 06:28:04 by coremart          #+#    #+#              #
-#    Updated: 2021/07/26 12:54:45 by coremart         ###   ########.fr        #
+#    Updated: 2021/07/27 16:09:56 by coremart         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 ## COMPILATION ##
 NAME = libmalloc.dylib
-CFLAGS = -g -Wall -Wextra -Werror -pedantic-errors -std=c99
+CFLAGS = -Wall -Wextra -Werror -pedantic-errors -std=c99
 DFLAGS = -MT $@ -MMD -MP -MF $(DDIR)/$*.d
+DYLIBFLAGS = -dynamiclib -fPIC
 
 ## INCLUDE ##
 HDIR = include
@@ -38,7 +39,7 @@ DEPS = $(patsubst %,$(DDIR)/%,$(_DEPS))
 all: $(NAME)
 
 $(NAME): $(OBJS)
-	gcc -o $(NAME) $(OBJS) $(CFLAGS) -dynamiclib -fPIC
+	gcc -o $(NAME) $(OBJS) $(CFLAGS) $(DYLIBFLAGS)
 
 $(ODIR)/%.o: $(SDIR)/%.c
 	gcc $(CFLAGS) $(DFLAGS) -o $@ -c $< -I $(HDIR)
@@ -52,6 +53,10 @@ fclean: clean
 	@rm -f $(NAME)
 
 re: fclean all
+
+
+debug: CFLAGS += -DDEBUG -g
+debug: re
 
 .PRECIOUS: $(DDIR)/%.d
 .PHONY: all clean fclean re $(NAME)

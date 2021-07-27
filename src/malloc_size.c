@@ -6,24 +6,75 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/07/26 12:41:14 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/26 13:08:29 by coremart         ###   ########.fr       */
+/*   Updated: 2021/07/27 16:16:04 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "malloc.h"
+#include <stdio.h>
+void	print_addr(void *addr);
+void		print_size(size_t sz);
+
+#ifdef __APPLE__
+# include <AvailabilityMacros.h>
+#endif
 
 size_t		malloc_size(const void* ptr) {
 
-	// write(1, "malloc_size\n", 12);
+	#ifdef DEBUG
+	write(1, "malloc_size(", 12);
+	print_addr((void*)ptr);
+	write(1, "):\t", 3);
+	#endif
+
 	struct s_alloc_chunk *chunk = (struct s_alloc_chunk*)ptr_offset((void*)ptr, - (long)HEADER_SIZE);
 	if (!is_valid_chunk(chunk))
 		return (0);
 
-	return ((chunk->size_n_bits & CHUNK_SIZE) - HEADER_SIZE);
+	// the reamaining memory is not added to large chunk
+	size_t alloc_chunk_remain_mem = (get_chunk_size(chunk) >= SMALL_THRESHOLD)
+									 ? 0
+									 : sizeof(size_t);
+
+	// starting from macos 11.0 the Objective-C Runtime check
+	// the ""memory integrity"" by checking the size of allocated structure
+	// https://opensource.apple.com/source/objc4/objc4-818.2/runtime/objc-runtime-new.mm.auto.html
+	#ifdef MAC_OS_VERSION_11_0
+	if (get_chunk_size(chunk) == 48) {
+
+		if (((size_t*)chunk)[2] == 0x0000000080080000UL
+		|| ((size_t*)chunk)[2] == 0x0000000080080001UL
+		|| ((size_t*)chunk)[2] == 0x00000000a0080001UL
+		|| ((size_t*)chunk)[2] == 0x0000000280080000UL
+		|| ((size_t*)chunk)[2] == 0x0000000280880000UL
+		|| ((size_t*)chunk)[2] == 0x0000000000880000UL
+		|| ((size_t*)chunk)[2] == 0x0000000080880000UL
+		|| ((size_t*)chunk)[2] == 0x00000002a0080001UL
+		|| ((size_t*)chunk)[2] == 0x0000000280080001UL)
+			return (32);
+	}
+	#endif
+
+	#ifdef DEBUG
+	print_size(get_chunk_size(chunk) - HEADER_SIZE + alloc_chunk_remain_mem);
+	write(1, "\n", 1);
+	#endif
+
+	return (get_chunk_size(chunk) - HEADER_SIZE + alloc_chunk_remain_mem);
 }
 
 size_t		malloc_good_size(size_t size) {
 
-	// write(1, "malloc_good_size\n", 17);
-	return (chunk_size_from_user_size(size) - HEADER_SIZE);
+	#ifdef DEBUG
+	write(1, "malloc_good_size(", 17);
+	print_size(size);
+	write(1, "):\t", 3);
+	#endif
+
+	// the reamaining memory is not added to large chunk
+	size_t alloc_chunk_remain_mem = (chunk_size_from_user_size(size) >= SMALL_THRESHOLD)
+									 ? 0
+									 : sizeof(size_t);
+
+	return (chunk_size_from_user_size(size) - HEADER_SIZE + alloc_chunk_remain_mem);
 }

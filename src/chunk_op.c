@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/04/24 12:50:29 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/14 00:42:38 by coremart         ###   ########.fr       */
+/*   Updated: 2021/07/26 16:26:50 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -105,5 +105,12 @@ extern inline size_t		chunk_size_from_user_size(size_t user_size) {
 	// min size is 32
 	if (user_size <= 24)
 		return (32);
-	return ((NEXT_8MULT(user_size) | 8) + sizeof(size_t));
+
+	size_t chunk_size = (NEXT_8MULT(user_size) | 8) + sizeof(size_t);
+
+	// if chunk is a large we just need enough space to store a chunk
+	if (chunk_size >= SMALL_THRESHOLD)
+		chunk_size = NEXT_PAGEALIGN(NEXT_8MULT(user_size) + HEADER_SIZE);
+
+	return (chunk_size);
 }

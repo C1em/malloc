@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:26:54 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/26 13:08:22 by coremart         ###   ########.fr       */
+/*   Updated: 2021/07/27 16:06:42 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,7 +35,7 @@ void		*large_malloc(size_t size) {
 		return (NULL);
 
 	((struct s_alloc_chunk*)alloc)->size_n_bits = NEXT_PAGEALIGN(size);
-	return ((void*)((char*)alloc + HEADER_SIZE));
+	return (ptr_offset(alloc, (long)HEADER_SIZE));
 }
 
 struct s_alloc_chunk	*new_smallarena(size_t size) {
@@ -443,9 +443,11 @@ void	print_addr(void *addr);
 
 void		*malloc(size_t size) {
 
-	// write(1, "malloc(", 7);
-	// print_size(size);
-	// write(1, "):\t", 3);
+	#ifdef DEBUG
+	write(1, "malloc(", 7);
+	print_size(size);
+	write(1, "):\t", 3);
+	#endif
 
 	// TODO: put a max_size
 	if (size >= ULONG_MAX - PAGE_SZ - HEADER_SIZE)
@@ -464,7 +466,10 @@ void		*malloc(size_t size) {
 	else
 		res = tiny_malloc(chunk_size);
 
-	// print_addr(res);
-	// write(1, "\n", 1);
+	#ifdef DEBUG
+	print_addr(res);
+	write(1, "\n", 1);
+	#endif
+
 	return (res);
 }
