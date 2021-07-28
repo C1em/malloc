@@ -6,7 +6,7 @@
 #    By: coremart <coremart@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2021/07/21 06:28:04 by coremart          #+#    #+#              #
-#    Updated: 2021/07/27 16:09:56 by coremart         ###   ########.fr        #
+#    Updated: 2021/07/28 18:05:34 by coremart         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -14,7 +14,7 @@
 UNAME := $(shell uname)
 
 ## COMPILATION ##
-CFLAGS = -Wall -Wextra -Werror -pedantic-errors
+CFLAGS = -Wall -Wextra -Werror -pedantic-errors -O3 -flto=full
 DFLAGS = -MT $@ -MMD -MP -MF $(DDIR)/$*.d
 LIBFLAGS = -dynamiclib -fPIC
 
