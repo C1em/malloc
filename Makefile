@@ -10,11 +10,13 @@
 #                                                                              #
 # **************************************************************************** #
 
+## OS ##
+UNAME := $(shell uname)
+
 ## COMPILATION ##
-NAME = libmalloc.dylib
-CFLAGS = -Wall -Wextra -Werror -pedantic-errors -std=c99
+CFLAGS = -Wall -Wextra -Werror -pedantic-errors
 DFLAGS = -MT $@ -MMD -MP -MF $(DDIR)/$*.d
-DYLIBFLAGS = -dynamiclib -fPIC
+LIBFLAGS = -dynamiclib -fPIC
 
 ## INCLUDE ##
 HDIR = include
@@ -34,12 +36,27 @@ DDIR = dep
 _DEPS = $(_OBJS:.o=.d)
 DEPS = $(patsubst %,$(DDIR)/%,$(_DEPS))
 
+ifeq ($(UNAME), Darwin) # Macos
+
+CFLAGS += -std=c99
+NAME = libmalloc.dylib
+LIBFLAGS = -dynamiclib -fPIC
+endif
+
+ifeq ($(UNAME), Linux) # Linux
+
+CFLAGS += -std=gnu99 -fPIC
+NAME = libmalloc.so
+LIBFLAGS = -shared -fPIC
+endif
+
+
 ## RULES ##
 
 all: $(NAME)
 
 $(NAME): $(OBJS)
-	gcc -o $(NAME) $(OBJS) $(CFLAGS) $(DYLIBFLAGS)
+	gcc -o $(NAME) $(OBJS) $(CFLAGS) $(LIBFLAGS)
 
 $(ODIR)/%.o: $(SDIR)/%.c
 	gcc $(CFLAGS) $(DFLAGS) -o $@ -c $< -I $(HDIR)

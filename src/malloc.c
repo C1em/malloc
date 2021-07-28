@@ -15,7 +15,6 @@
 #include <stdbool.h>
 #include <limits.h>
 #include <unistd.h>
-#include <malloc/malloc.h>
 #include <stdlib.h>
 
 struct s_malloc_struct malloc_struct;

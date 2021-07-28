@@ -23,7 +23,7 @@
 # define SMALL_THRESHOLD		10240
 # define FASTBIN_MAX			272
 
-# define PAGE_SZ				getpagesize()
+# define PAGE_SZ				sysconf(_SC_PAGESIZE)
 # define NEXT_8MULT(x)			((7 + x) & ~7)
 # define NEXT_PAGEALIGN(x)		((PAGE_SZ - 1 + x) & ~(PAGE_SZ - 1))
 
