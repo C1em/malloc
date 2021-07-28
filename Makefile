@@ -6,7 +6,7 @@
 #    By: coremart <coremart@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2021/07/21 06:28:04 by coremart          #+#    #+#              #
-#    Updated: 2021/07/28 18:05:34 by coremart         ###   ########.fr        #
+#    Updated: 2021/07/28 18:29:42 by coremart         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -14,7 +14,7 @@
 UNAME := $(shell uname)
 
 ## COMPILATION ##
-CFLAGS = -Wall -Wextra -Werror -pedantic-errors -O3 -flto=full
+CFLAGS = -Wall -Wextra -Werror -pedantic-errors -O3
 DFLAGS = -MT $@ -MMD -MP -MF $(DDIR)/$*.d
 LIBFLAGS = -dynamiclib -fPIC
 
@@ -48,6 +48,12 @@ ifeq ($(UNAME), Linux) # Linux
 CFLAGS += -std=gnu99 -fPIC
 NAME = libmalloc.so
 LIBFLAGS = -shared -fPIC
+endif
+
+ifeq ($(CXX),clang)
+CFLAGS += -flto=full
+else ifeq($(CXX), gcc)
+CFLAGS += -flto -Wno-unused-result
 endif
 
 
