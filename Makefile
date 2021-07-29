@@ -6,7 +6,7 @@
 #    By: coremart <coremart@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2021/07/21 06:28:04 by coremart          #+#    #+#              #
-#    Updated: 2021/07/28 18:29:42 by coremart         ###   ########.fr        #
+#    Updated: 2021/07/29 14:26:49 by coremart         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -51,9 +51,9 @@ LIBFLAGS = -shared -fPIC
 endif
 
 ifeq ($(CXX),clang)
-CFLAGS += -flto=full
-else ifeq($(CXX), gcc)
-CFLAGS += -flto -Wno-unused-result
+	CFLAGS += -flto=full
+else ifeq ($(CXX), gcc)
+	CFLAGS += -flto -Wno-unused-result
 endif
 
 
