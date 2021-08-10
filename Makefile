@@ -6,7 +6,7 @@
 #    By: coremart <coremart@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2021/07/21 06:28:04 by coremart          #+#    #+#              #
-#    Updated: 2021/07/29 14:26:49 by coremart         ###   ########.fr        #
+#    Updated: 2021/08/03 14:02:12 by coremart         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -16,7 +16,7 @@ UNAME := $(shell uname)
 ## COMPILATION ##
 CFLAGS = -Wall -Wextra -Werror -pedantic-errors -O3
 DFLAGS = -MT $@ -MMD -MP -MF $(DDIR)/$*.d
-LIBFLAGS = -dynamiclib -fPIC
+LIBFLAGS = -fPIC
 
 ## INCLUDE ##
 HDIR = include
@@ -40,14 +40,14 @@ ifeq ($(UNAME), Darwin) # Macos
 
 CFLAGS += -std=c99
 NAME = libmalloc.dylib
-LIBFLAGS = -dynamiclib -fPIC
+LIBFLAGS += -dynamiclib
 endif
 
 ifeq ($(UNAME), Linux) # Linux
 
 CFLAGS += -std=gnu99 -fPIC
 NAME = libmalloc.so
-LIBFLAGS = -shared -fPIC
+LIBFLAGS += -shared
 endif
 
 ifeq ($(CXX),clang)
