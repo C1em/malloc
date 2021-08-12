@@ -6,14 +6,11 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/07/26 12:41:14 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/27 16:16:04 by coremart         ###   ########.fr       */
+/*   Updated: 2021/08/12 15:30:49 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "malloc.h"
-#include <stdio.h>
-void	print_addr(void *addr);
-void		print_size(size_t sz);
 
 #ifdef __APPLE__
 # include <AvailabilityMacros.h>
@@ -27,9 +24,13 @@ size_t		malloc_size(const void* ptr) {
 	write(1, "):\t", 3);
 	#endif
 
+	pthread_mutex_lock(&mutex);
 	struct s_alloc_chunk *chunk = (struct s_alloc_chunk*)ptr_offset((void*)ptr, - (long)HEADER_SIZE);
-	if (!is_valid_chunk(chunk))
+	if (!is_valid_chunk(chunk)) {
+
+		pthread_mutex_unlock(&mutex);
 		return (0);
+	}
 
 	// the reamaining memory is not added to large chunk
 	size_t alloc_chunk_remain_mem = (get_chunk_size(chunk) >= SMALL_THRESHOLD)
@@ -50,8 +51,11 @@ size_t		malloc_size(const void* ptr) {
 		|| ((size_t*)chunk)[2] == 0x0000000000880000UL
 		|| ((size_t*)chunk)[2] == 0x0000000080880000UL
 		|| ((size_t*)chunk)[2] == 0x00000002a0080001UL
-		|| ((size_t*)chunk)[2] == 0x0000000280080001UL)
+		|| ((size_t*)chunk)[2] == 0x0000000280080001UL) {
+
+			pthread_mutex_unlock(&mutex);
 			return (32);
+		}
 	}
 	#endif
 
@@ -60,7 +64,11 @@ size_t		malloc_size(const void* ptr) {
 	write(1, "\n", 1);
 	#endif
 
-	return (get_chunk_size(chunk) - HEADER_SIZE + alloc_chunk_remain_mem);
+	size_t size = get_chunk_size(chunk) - HEADER_SIZE + alloc_chunk_remain_mem;
+
+	pthread_mutex_unlock(&mutex);
+
+	return (size);
 }
 
 size_t		malloc_good_size(size_t size) {

@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/07/22 12:08:30 by coremart          #+#    #+#             */
-/*   Updated: 2021/08/10 18:27:52 by coremart         ###   ########.fr       */
+/*   Updated: 2021/08/12 15:42:11 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,8 +49,6 @@ void		*realloc_memcpy(void *dst, const void *src, size_t n) {
 	return (dst);
 
 }
-void	print_addr(void *addr);
-void		print_size(size_t sz);
 
 void		*realloc(void *ptr, size_t size) {
 

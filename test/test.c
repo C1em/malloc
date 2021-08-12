@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:27:57 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/26 13:56:51 by coremart         ###   ########.fr       */
+/*   Updated: 2021/08/12 15:46:57 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,20 +28,6 @@ struct s_alloc_chunk	*check_tinybin(size_t size);
 struct s_binlist		*coalesce_tinychunk(struct s_any_chunk *chunk_ptr);
 struct s_alloc_chunk	*coalesce_fastbin(size_t size);
 int				get_smallbin_index(size_t sz);
-
-static inline struct s_alloc_chunk	*check_fastbin(size_t size) {
-
-	if (size > FASTBIN_MAX)
-		return (NULL);
-
-	int index = (int)(size >> 4) - 2; // (size - 32) / 16
-	struct s_fastbinlist *ret = malloc_struct.fastbin[index];
-	if (ret == NULL)
-		return (NULL);
-	malloc_struct.fastbin[index] = malloc_struct.fastbin[index]->next;
-
-	return ((struct s_alloc_chunk*)ret);
-}
 
 struct s_binlist *generate_chunk(
 	size_t size_n_bits,
@@ -141,38 +127,38 @@ void print_allocchunk(struct s_alloc_chunk *chunkptr)
 	printf("--------------------------------------------\n");
 }
 
-void	print_tinyarenas(struct s_arena *tinyarenalist) {
+// void	print_tinyarenas(struct s_arena *tinyarenalist) {
 
-	// stop condition
-	if (tinyarenalist == NULL)
-		return;
+// 	// stop condition
+// 	if (tinyarenalist == NULL)
+// 		return;
 
-	// recursion
-	print_tinyarenas(tinyarenalist->prev);
+// 	// recursion
+// 	print_tinyarenas(tinyarenalist->prev);
 
-	// actual print
-	struct s_any_chunk	*cur_chunk = (struct s_any_chunk*)tinyarenalist;
+// 	// actual print
+// 	struct s_any_chunk	*cur_chunk = (struct s_any_chunk*)tinyarenalist;
 
-	printf("\nNEW ARENA : %p\n", tinyarenalist);
+// 	printf("\nNEW ARENA : %p\n", tinyarenalist);
 
-	void*	last_chunk;
-	if (tinyarenalist == malloc_struct.tinyarenalist)
-		last_chunk = (void*)malloc_struct.topchunk_tinyarena;
-	else
-		last_chunk = (void*)ptr_offset(tinyarenalist, (long)TINY_ARENA_SZ - (long)HEADER_SIZE);
+// 	void*	last_chunk;
+// 	if (tinyarenalist == malloc_struct.tinyarenalist)
+// 		last_chunk = (void*)malloc_struct.topchunk_tinyarena;
+// 	else
+// 		last_chunk = (void*)ptr_offset(tinyarenalist, (long)TINY_ARENA_SZ - (long)HEADER_SIZE);
 
 
-	while ((void*)cur_chunk < last_chunk) {
+// 	while ((void*)cur_chunk < last_chunk) {
 
-		print_any_chunk(cur_chunk);
-		if (get_chunk_size(cur_chunk) == 0)
-			exit(1);
-		cur_chunk = get_next_chunk(cur_chunk);
-	}
+// 		print_any_chunk(cur_chunk);
+// 		if (get_chunk_size(cur_chunk) == 0)
+// 			exit(1);
+// 		cur_chunk = get_next_chunk(cur_chunk);
+// 	}
 
-	if (cur_chunk == last_chunk)
-		print_any_chunk(cur_chunk);
-}
+// 	if (cur_chunk == last_chunk)
+// 		print_any_chunk(cur_chunk);
+// }
 
 void ez_random_test() {
 
@@ -181,11 +167,11 @@ void ez_random_test() {
 	int		alloc_index = 0;
 	int		free_index = 0;
 
-	for (int i = 0; i < 512; i++) {
+	for (int i = 0; i < 64; i++) {
 
 		if (arc4random() % 2) {
 
-			size_arr[alloc_index] = arc4random() % 488;
+			size_arr[alloc_index] = arc4random() % 20000;
 			arr[alloc_index] = (char*)malloc(size_arr[alloc_index]);
 
 			// fill allocated mem with 0xff
@@ -194,14 +180,16 @@ void ez_random_test() {
 
 			alloc_index++;
 			printf("alloc_index: %d\n", alloc_index);
-			print_tinyarenas(malloc_struct.tinyarenalist);
+			show_alloc_mem();
+			// print_tinyarenas(malloc_struct.tinyarenalist);
 		}
 		// if something to free
 		else if (free_index < alloc_index){
 			free(arr[free_index]);
 			free_index++;
 
-			print_tinyarenas(malloc_struct.tinyarenalist);
+			show_alloc_mem();
+			// print_tinyarenas(malloc_struct.tinyarenalist);
 		}
 	}
 }
@@ -213,12 +201,13 @@ struct	s_alloc
 };
 void	*ft_memset(void *dst, int c, size_t length);
 
-void hard_random_test() {
+void *hard_random_test(void* args) {
 
 	char	*arr[16384];
 	size_t	arr_sz = 0;
 	size_t	cur_sz;
 
+	(void)args;
 	for (int i = 0; i < sizeof(arr) / sizeof(arr[0]); i++) {
 
 		if (arc4random() % 2) {
@@ -227,7 +216,7 @@ void hard_random_test() {
 			arr[arr_sz] = (char*)malloc(cur_sz);
 
 			// fill allocated mem with 0xff
-			ft_memset(arr[arr_sz], -1, malloc_size(arr[arr_sz]));
+			memset(arr[arr_sz], -1, malloc_size(arr[arr_sz]));
 			arr_sz++;
 
 			printf("array size: %zu\n", arr_sz);
@@ -247,13 +236,14 @@ void hard_random_test() {
 			printf("END PRINT ARENA\n\n");
 		}
 	}
-	for (int i = 0; i < arr_sz; i++) {
+	show_alloc_mem();
+	// for (int i = 0; i < arr_sz; i++) {
 
-		free(arr[i]);
-		print_tinyarenas(malloc_struct.tinyarenalist);
-		printf("END PRINT ARENA\n\n");
-	}
-
+	// 	free(arr[i]);
+	// 	print_tinyarenas(malloc_struct.tinyarenalist);
+	// 	printf("END PRINT ARENA\n\n");
+	// }
+	return (NULL);
 }
 
 void test1() {
@@ -914,6 +904,30 @@ void		test_coalesce_fastbin(void) {
 		printf("get_next_chunk(get_next_chunk(coalesced_chunk))->size_n_bits != (HEADER_SIZE | ISTOPCHUNK | PREVINUSE)\n");
 }
 
+void	multithread_hard_random_test(void) {
+
+	pthread_t p1;
+	pthread_t p2;
+	pthread_t p3;
+	pthread_t p4;
+	pthread_t p5;
+	pthread_t p6;
+
+	pthread_create(&p1, NULL, hard_random_test, NULL);
+	pthread_create(&p2, NULL, hard_random_test, NULL);
+	pthread_create(&p3, NULL, hard_random_test, NULL);
+	pthread_create(&p4, NULL, hard_random_test, NULL);
+	pthread_create(&p5, NULL, hard_random_test, NULL);
+	pthread_create(&p6, NULL, hard_random_test, NULL);
+
+
+	pthread_join(p1, NULL);
+	pthread_join(p2, NULL);
+	pthread_join(p3, NULL);
+	pthread_join(p4, NULL);
+	pthread_join(p5, NULL);
+	pthread_join(p6, NULL);
+}
 
 int		main(void) {
 	// test_malloc_init();
@@ -925,8 +939,9 @@ int		main(void) {
 	// test_split_tinychunk_for_size();
 	// test_coalesce_fastbin();
 
-	// ez_random_test();
-	hard_random_test();
+	ez_random_test();
+	// hard_random_test(NULL);
+	// multithread_hard_random_test();
 
 	// test1();
 	// struct s_binlist* tmp = generate_chunk(32, NULL, NULL);

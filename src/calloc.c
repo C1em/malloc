@@ -6,18 +6,12 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/07/22 17:26:01 by coremart          #+#    #+#             */
-/*   Updated: 2021/08/10 18:13:52 by coremart         ###   ########.fr       */
+/*   Updated: 2021/08/12 15:20:42 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "malloc.h"
-
 #include <sys/types.h>
-
-#include <limits.h>
-
-void		print_size(size_t sz);
-
 
 #define	wsize	sizeof(u_int)
 #define	wmask	(wsize - 1)

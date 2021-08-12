@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/08/12 17:27:04 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/26 12:54:26 by coremart         ###   ########.fr       */
+/*   Updated: 2021/08/12 15:47:38 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,7 @@
 
 # include <unistd.h>
 # include <stdbool.h>
+# include <pthread.h>
 
 # define HEADER_SIZE			sizeof(struct s_any_chunk)
 
@@ -45,8 +46,10 @@
 + 1)
 // (10240 / 10) - 512) / 64 + (10240 / 10) / 128 + (10240 / 5) / 256 + (10240 / 5) / 512 + (10240 / 5) / 1024 + (10240 / 5) / 2048 + 1
 
-
 # define NBINS					NB_TINYBINS + NB_SMALLBINS + NB_BIGFREED
+
+
+extern pthread_mutex_t mutex;
 
 /*
 ** Freed chunk:
@@ -154,11 +157,12 @@ struct s_malloc_struct {
 	struct s_any_chunk		*topchunk_tinyarena; // pointer on the last chunk of tinyarenalist
 	struct s_arena			*smallarenalist;
 	struct s_any_chunk		*topchunk_smallarena; // pointer on the last chunk of tinyarenalist
+	struct s_arena			*largearenalist;
 };
 
-/*
-**	chunk_op.c
-*/
+/**
+ * chunk_op.c
+ */
 unsigned int			get_bits(void *ptr);
 void					add_bits(void *ptr, unsigned int bits);
 void					rm_bits(void *ptr, unsigned int bits);
@@ -170,23 +174,66 @@ struct s_any_chunk		*get_next_chunk(void* ptr);
 struct s_any_chunk		*get_prev_chunk(void* ptr);
 struct s_any_chunk		*split_tinychunk_for_size(struct s_any_chunk *chunk_ptr, size_t sz);
 size_t					chunk_size_from_user_size(size_t user_data);
+bool					is_valid_chunk(struct s_alloc_chunk *chunk);
 
-void						*malloc(size_t size);
-void						free(void *ptr);
-void						*realloc(void *ptr, size_t size);
-void		*calloc(size_t count, size_t size);
-void*		reallocf(void *ptr, size_t size);
-size_t		malloc_size(const void* ptr);
-size_t		malloc_good_size(size_t size);
 
-bool				is_valid_chunk(struct s_alloc_chunk *chunk);
+void					*malloc(size_t size);
+void					free(void *ptr);
+void					*realloc(void *ptr, size_t size);
+void					*calloc(size_t count, size_t size);
+void					*reallocf(void *ptr, size_t size);
+size_t					malloc_size(const void* ptr);
+size_t					malloc_good_size(size_t size);
+void					show_alloc_mem(void);
 
-struct s_binlist			*coalesce_tinychunk(struct s_any_chunk *chunk_ptr);
-struct s_binlist			*coalesce_smallchunk(struct s_any_chunk *chunk_ptr);
-void						unlink_chunk(struct s_binlist *chunk_ptr);
-void						add_tinybin(struct s_binlist* chunk_ptr);
-int				get_smallbin_index(size_t sz);
-void			add_smallbin(struct s_binlist *chunk);
+bool					is_valid_chunk(struct s_alloc_chunk *chunk);
+
+/**
+ * bin_utils.c
+ */
+void					add_fastbin(struct s_alloc_chunk *chunk);
+void					add_big_tinybin(struct s_binlist *chunk);
+void					add_big_smallbin(struct s_binlist *chunk);
+int						get_smallbin_index(size_t sz);
+void					add_smallbin(struct s_binlist *chunk);
+void					add_tinybin(struct s_binlist *chunk);
+void					unlink_chunk(struct s_binlist *chunk);
+struct s_alloc_chunk	*check_big_smallbin(size_t size);
+struct s_alloc_chunk	*check_smallbin(size_t size);
+struct s_alloc_chunk	*check_fastbin(size_t size);
+struct s_alloc_chunk	*check_tinybin(size_t size);
+struct s_alloc_chunk	*check_big_tinybin(size_t size);
+struct s_alloc_chunk	*coalesce_fastbin(size_t size);
+
+/**
+ * coalesce_chunk.c
+ */
+struct s_binlist		*coalesce_tinychunk(struct s_any_chunk *chunk_ptr);
+struct s_binlist		*coalesce_smallchunk(struct s_any_chunk *chunk_ptr);
+
+void					unlink_chunk(struct s_binlist *chunk_ptr);
+void					add_tinybin(struct s_binlist* chunk_ptr);
+int						get_smallbin_index(size_t sz);
+void					add_smallbin(struct s_binlist *chunk);
+
+/**
+ * print_utils.c
+ */
+void					print_size(size_t sz);
+void					print_addr(void *addr);
+void					print_alloc_chunk(struct s_any_chunk *chunkptr);
+void					print_alloc_chunk(struct s_any_chunk *chunkptr);
+size_t					print_tinyarenas(struct s_arena *tinyarenalist);
+size_t					print_smallarenas(struct s_arena *smallarenalist);
+size_t					print_largearenas(struct s_arena *largearenalist);
+
+/**
+ * arena_utils.c
+ */
+bool					unlink_largearena(struct s_arena* arena);
+bool					is_in_arena(struct s_alloc_chunk *chunk);
+struct s_alloc_chunk	*new_smallarena(size_t size);
+struct s_alloc_chunk	*new_tinyarena(size_t size);
 
 
 #endif

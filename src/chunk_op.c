@@ -6,7 +6,7 @@
 /*   By: coremart <coremart@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/04/24 12:50:29 by coremart          #+#    #+#             */
-/*   Updated: 2021/07/26 16:26:50 by coremart         ###   ########.fr       */
+/*   Updated: 2021/08/12 15:39:01 by coremart         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -114,3 +114,24 @@ extern inline size_t		chunk_size_from_user_size(size_t user_size) {
 
 	return (chunk_size);
 }
+
+
+bool					is_valid_chunk(struct s_alloc_chunk *chunk) {
+
+	if (is_in_arena(chunk)) {
+
+		if (get_chunk_size(chunk) < SMALL_THRESHOLD
+		&& get_chunk_size(chunk) % 16 == 0
+		&& (get_bits(get_next_chunk(chunk)) & PREVINUSE) == PREVINUSE)
+			return (true);
+	}
+	// can be a large chunk
+	else if ((size_t)chunk % PAGE_SZ == 0) {
+
+		if (chunk->size_n_bits >= SMALL_THRESHOLD && chunk->size_n_bits % PAGE_SZ == 0)
+			return (true);
+	}
+
+	return (false);
+}
+

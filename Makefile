@@ -6,7 +6,7 @@
 #    By: coremart <coremart@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2021/07/21 06:28:04 by coremart          #+#    #+#              #
-#    Updated: 2021/08/03 14:02:12 by coremart         ###   ########.fr        #
+#    Updated: 2021/08/12 15:39:34 by coremart         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -23,7 +23,7 @@ HDIR = include
 
 ## SOURCES ##
 SDIR = src
-_SRCS = chunk_op.c free.c malloc.c realloc.c calloc.c reallocf.c malloc_size.c
+_SRCS = chunk_op.c free.c malloc.c realloc.c calloc.c reallocf.c malloc_size.c show_alloc_mem.c print_utils.c bin_utils.c coalesce_chunk.c arena_utils.c
 SRCS = $(patsubst %,$(SDIR)/%,$(_SRCS))
 
 ## OBJECTS ##
