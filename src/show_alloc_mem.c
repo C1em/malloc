@@ -11,7 +11,6 @@
 /* ************************************************************************** */
 
 #include "malloc.h"
-#include <stdio.h>
 
 extern struct s_malloc_struct malloc_struct;
 
@@ -28,7 +27,9 @@ void	show_alloc_mem(void) {
 	total += print_smallarenas(malloc_struct.smallarenalist);
 	total += print_largearenas(malloc_struct.largearenalist);
 
-	printf("Total : %zu octets\n", total);
-	pthread_mutex_unlock(&mutex);
+	write(1, "Total : ", 8);
+	print_size(total);
+	write(1, " octets\n", 8);
 
+	pthread_mutex_unlock(&mutex);
 }

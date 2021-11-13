@@ -1,4 +1,5 @@
-libmalloc.dylib
+libft_malloc.so
+libft_malloc_*.so
 libmalloc.so
 .vscode
 .env

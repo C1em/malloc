@@ -115,7 +115,6 @@ void		*tiny_malloc(size_t size) {
 	}
 	return (NULL);
 }
-
 bool		malloc_init(void) {
 
 	malloc_struct.tinyarenalist =  mmap(

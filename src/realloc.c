@@ -47,7 +47,6 @@ void		*realloc_memcpy(void *dst, const void *src, size_t n) {
 		*uchar_dst++ = *uchar_src++;
 
 	return (dst);
-
 }
 
 void		*realloc(void *ptr, size_t size) {
@@ -69,6 +68,10 @@ void		*realloc(void *ptr, size_t size) {
 		free(ptr);
 		return (malloc(0));
 	}
+
+	struct s_alloc_chunk *chunk = (struct s_alloc_chunk*)ptr_offset((void*)ptr, - (long)HEADER_SIZE);
+	if (!is_valid_chunk(chunk))
+		return (NULL);
 
 	void* nptr = malloc(size);
 	if (nptr == NULL)

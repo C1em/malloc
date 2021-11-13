@@ -39,14 +39,19 @@ DEPS = $(patsubst %,$(DDIR)/%,$(_DEPS))
 ifeq ($(UNAME), Darwin) # Macos
 
 CFLAGS += -std=c99
-NAME = libmalloc.dylib
+NAME = libft_malloc_$(HOSTTYPE).dylib
 LIBFLAGS += -dynamiclib
 endif
 
 ifeq ($(UNAME), Linux) # Linux
 
 CFLAGS += -std=gnu99 -fPIC
-NAME = libmalloc.so
+
+ifeq ($(HOSTTYPE),)
+HOSTTYPE := $(shell uname -m)_$(shell uname -s)
+endif
+
+NAME = libft_malloc_$(HOSTTYPE).so
 LIBFLAGS += -shared
 endif
 
@@ -63,6 +68,7 @@ all: $(NAME)
 
 $(NAME): $(OBJS)
 	gcc -o $(NAME) $(OBJS) $(CFLAGS) $(LIBFLAGS)
+	ln -sf libft_malloc_$(HOSTTYPE).so libft_malloc.so
 
 $(ODIR)/%.o: $(SDIR)/%.c
 	gcc $(CFLAGS) $(DFLAGS) -o $@ -c $< -I $(HDIR)
@@ -73,7 +79,7 @@ clean:
 	@rm -f $(OBJS)
 
 fclean: clean
-	@rm -f $(NAME)
+	@rm -f $(NAME) libft_malloc.so
 
 re: fclean all
 
@@ -82,4 +88,4 @@ debug: CFLAGS += -DDEBUG -g
 debug: re
 
 .PRECIOUS: $(DDIR)/%.d
-.PHONY: all clean fclean re $(NAME)
+.PHONY: all clean fclean re
